@@ -7,6 +7,27 @@ DEVICE_VARS += ADDPATTERN_ID ADDPATTERN_VERSION
 DEVICE_VARS += SEAMA_SIGNATURE SEAMA_MTDBLOCK
 DEVICE_VARS += KERNEL_INITRAMFS_PREFIX
 
+define Build/loader-wasp-compile
+	rm -rf $@.src
+	$(MAKE) -C lzma-loader \
+		PKG_BUILD_DIR="$@.src" \
+		TARGET_DIR="$(dir $@)" LOADER_NAME="$(notdir $@)" \
+		LZMA_TEXT_START=0x81a00000 LOADADDR=0x80020000 \
+		$(1) compile loader.$(LOADER_TYPE)
+	mv "$@.$(LOADER_TYPE)" "$@"
+	rm -rf $@.src
+endef
+
+define Build/wasp-checksum
+	$(STAGING_DIR_HOST)/bin/wasp-checksum \
+		-i "$@" -o "$@.new" -m $(word 1,$(1))
+	mv "$@.new" "$@"
+endef
+
+define Build/loader-kernel-wasp
+	$(call Build/loader-wasp-compile,LOADER_DATA="$@")
+endef
+
 define Build/add-elecom-factory-initramfs
   $(eval edimax_model=$(word 1,$(1)))
   $(eval product=$(word 2,$(1)))
@@ -191,6 +212,18 @@ define Device/avm_fritz300e
   SUPPORTED_DEVICES += fritz300e
 endef
 TARGET_DEVICES += avm_fritz300e
+
+define Device/avm_fritz3490_wasp
+  SOC := qca9558
+  DEVICE_VENDOR := AVM
+  DEVICE_MODEL := FRITZ!Box 3490 WASP
+  KERNEL := kernel-bin | append-dtb | relocate-kernel | lzma | \
+  	loader-kernel-wasp | pad-to 4096 | pad-extra 208 | wasp-checksum 3490
+  LOADER_TYPE := bin
+  KERNEL_INITRAMFS := $$(KERNEL)
+  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct kmod-owl-loader wasp_downloader -swconfig -uboot-env-tools
+endef
+TARGET_DEVICES += avm_fritz3490_wasp
 
 define Device/avm_fritz4020
   $(Device/avm)
