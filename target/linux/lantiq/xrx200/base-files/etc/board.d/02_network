@@ -38,11 +38,14 @@ lantiq_setup_interfaces()
 		;;
 	avm,fritz3370-rev2-hynix|\
 	avm,fritz3370-rev2-micron|\
-	avm,fritz3390|\
 	avm,fritz7360sl|\
 	avm,fritz7362sl)
 		ucidef_add_switch "switch0" \
 			"0:lan:3" "1:lan:4" "2:lan:2" "4:lan:1" "6t@eth0"
+		;;
+	avm,fritz3390)
+		ucidef_add_switch "switch0" \
+			"0:lan:3" "1:lan:4" "2:lan:2" "4:lan:1" "5:lan:5" "6t@eth0"
 		;;
 	bt,homehub-v5a)
 		ucidef_add_switch "switch0" \
