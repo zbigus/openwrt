@@ -127,7 +127,7 @@
 		ethernet@0 {
 			compatible = "lantiq,xrx200-pdi-port";
 			reg = <0>;
-			phy-mode = "sgmii";
+			phy-mode = "rgmii";
 			phy-handle = <&phy0>;
 			gpios = <&gpio 32 GPIO_ACTIVE_HIGH>;
 		};
@@ -135,7 +135,7 @@
 		ethernet@1 {
 			compatible = "lantiq,xrx200-pdi-port";
 			reg = <1>;
-			phy-mode = "sgmii";
+			phy-mode = "rgmii";
 			phy-handle = <&phy1>;
 			gpios = <&gpio 44 GPIO_ACTIVE_HIGH>;
 		};

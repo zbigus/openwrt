@@ -126,7 +126,7 @@ define Device/avm_fritz3390
   KERNEL_SIZE := 4096k
   IMAGE_SIZE := 49152k
   DEVICE_PACKAGES := kmod-ath9k kmod-owl-loader wpad-basic kmod-usb-dwc2 \
-	fritz-tffs
+	fritz-tffs wasp_uploader
 endef
 TARGET_DEVICES += avm_fritz3390
 
