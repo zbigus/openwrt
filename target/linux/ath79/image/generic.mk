@@ -178,7 +178,7 @@ define Device/avm_fritzbox-3390-wasp
   LOADER_LZMA_TEXT_START := 0x81a00000
   LOADER_TYPE := bin
   KERNEL_INITRAMFS := $$(KERNEL)
-  DEVICE_PACKAGES := kmod-owl-loader -swconfig -uboot-env-tools
+  DEVICE_PACKAGES := kmod-owl-loader wasp_downloader -swconfig -uboot-env-tools
 endef
 TARGET_DEVICES += avm_fritzbox-3390-wasp
 
