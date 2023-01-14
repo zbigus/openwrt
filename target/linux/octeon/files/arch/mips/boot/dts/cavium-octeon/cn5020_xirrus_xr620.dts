@@ -1,0 +1,218 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+#include "octeon_3xxx.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	compatible = "xirrus,xr620";
+	model = "Xirrus XR620";
+
+	soc@0 {
+		smi0: mdio@1180000001800 {
+			phy0: ethernet-phy@1 {
+				reg = <1>;
+				compatible = "ethernet-phy-ieee802.3-c22";
+			};
+		};
+
+		smi1: mdio@1180000001900 {
+			compatible = "cavium,octeon-3860-mdio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x11800 0x00001900 0x0 0x40>;
+
+			phy1: ethernet-phy@2 {
+				reg = <2>;
+				compatible = "ethernet-phy-ieee802.3-c22";
+			};
+		};
+
+		pip: pip@11800a0000000 {
+			interface@0 {
+				ethernet@0 {
+					phy-handle = <&phy0>;
+					rx-delay = <0x0c>;
+					tx-delay = <0x0c>;
+				};
+			};
+
+			interface@1 {
+				ethernet@0 {
+					reg = <0>;
+					phy-handle = <&phy1>;
+					rx-delay = <0x0c>;
+					tx-delay = <0x0c>;
+				};
+			};
+		};
+
+		twsi0: i2c@1180000001000 {
+			rtc@51 {
+				compatible = "nxp,pcf8563";
+				reg = <0x51>;
+			};
+		};
+
+		uart0: serial@1180000000800 {
+			clock-frequency = <400000000>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_power_green: led-0 {
+			label = "green:power";
+			gpios = <&gpio 15 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_power_red: led-1 {
+			label = "red:power";
+			gpios = <&gpio 14 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_radio1_green: led-2 {
+			label = "green:radio1";
+			gpios = <&gpio 6 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_radio2_green: led-3 {
+			label = "green:radio2";
+			gpios = <&gpio 7 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_radio1_amber: led-4 {
+			label = "amber:radio1";
+			gpios = <&gpio 9 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_radio2_amber: led-5 {
+			label = "amber:radio2";
+			gpios = <&gpio 10 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	keys {
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
+
+		key-restart {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+
+	};
+
+	aliases {
+		smi0 = &smi0;
+		smi1 = &smi1;
+		pip = &pip;
+		usbn = &usbn;
+		led-boot = &led_power_green;
+		led-failsafe = &led_power_red;
+		led-running = &led_power_green;
+		led-upgrade = &led_power_red;
+	};
+};
+
+&usbn {
+	status = "disabled";
+};
+
+&gpio {
+/*
+	hog0 {
+		gpio-hog;
+		gpios = <0 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog0";
+	};
+
+	hog1 {
+		gpio-hog;
+		gpios = <1 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog1";
+	};
+
+	hog3 {
+		gpio-hog;
+		gpios = <3 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog3";
+	};
+*/
+	pcie1_reset { // PCIe Bus 1 Reset
+		gpio-hog;
+		gpios = <4 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "reset:pcie1";
+	};
+
+	pcie2_reset { // PCIe Bus 2 Reset
+		gpio-hog;
+		gpios = <5 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "reset:pcie2";
+	};
+/*
+	hog8 {
+		gpio-hog;
+		gpios = <8 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog8";
+	};
+
+	hog11 {
+		gpio-hog;
+		gpios = <11 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog11";
+	};
+
+	hog12 {
+		gpio-hog;
+		gpios = <12 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog12";
+	};
+
+	hog13 {
+		gpio-hog;
+		gpios = <13 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog13";
+	};
+
+	hog16 {
+		gpio-hog;
+		gpios = <16 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog16";
+	};
+
+	hog17 {
+		gpio-hog;
+		gpios = <17 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog17";
+	};
+
+	hog18 {
+		gpio-hog;
+		gpios = <18 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog18";
+	};
+
+	hog19 {
+		gpio-hog;
+		gpios = <19 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "hog19";
+	};
+*/
+};

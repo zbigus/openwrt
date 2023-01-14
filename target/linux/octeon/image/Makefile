@@ -14,6 +14,18 @@ define Build/strip-kernel
 	$(TARGET_CROSS)strip -R .notes $@ -o $@.stripped && mv $@.stripped $@
 endef
 
+define Build/xapimg-initramfs
+	$(CP) $@ $@.tmp
+	mkimage -A mips -O Linux -T multi -C none -n '$(VERSION_DIST) Linux-$(LINUX_VERSION)' \
+		-e 0 -a 0 -d $@.tmp:$(IMAGE_ROOTFS) $@
+	rm -fR $@.tmp
+endef
+
+define Build/xapimg
+	mkimage -A mips -O Linux -T multi -C none -n '$(VERSION_DIST) Linux-$(LINUX_VERSION)' \
+		-e 0 -a 0 -d $(IMAGE_KERNEL):$(IMAGE_ROOTFS) $@
+endef
+
 DTS_DIR := $(DTS_DIR)/cavium-octeon
 
 define Device/Default
@@ -88,10 +100,25 @@ define Device/ubnt_unifi-usg
   $(Device/ubnt_edgerouter-lite)
   DEVICE_MODEL := UniFi Security Gateway
   BOARD_NAME := ubnt,usg
-  DEVICE_PACKAGES += kmod-gpio-button-hotplug kmod-leds-gpio
+  DEVICE_PACKAGES += kmod-gpio-button-hotplug kmod-leds-gpio kmod-rtc-pcf8563
   DEVICE_DTS := cn5020_ubnt_usg
   KERNEL += | append-dtb-to-elf
 endef
 TARGET_DEVICES += ubnt_unifi-usg
+
+define Device/xirrus_xr620
+  IMAGES := factory.bin
+  IMAGE/factory.bin := xapimg
+  KERNEL := kernel-bin | patch-cmdline | append-dtb-to-elf
+  KERNEL_INITRAMFS := kernel-bin | patch-cmdline | append-dtb-to-elf | xapimg-initramfs
+  DEVICE_DTS := cn5020_xirrus_xr620
+  BOARD_NAME := xirrus,xr620
+  DEVICE_PACKAGES += ath10k-firmware-qca988x-ct kmod-ath10k-ct kmod-gpio-button-hotplug kmod-leds-gpio
+  KERNEL_DEPENDS := $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
+  DEVICE_VENDOR:  Xirrus
+  DEVICE_MODE: XR620
+  CMDLINE := console=ttyS0,115200 root=/dev/mmcblk0p2 rootfstype=squashfs,ext4 rootwait
+endef
+TARGET_DEVICES += xirrus_xr620
 
 $(eval $(call BuildImage))
