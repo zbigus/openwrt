@@ -14,7 +14,46 @@ DEVICE_VARS += \
         CAMEO_ROOTFS_PART \
         H3C_DEVICE_ID \
         H3C_PRODUCT_ID \
-        ZYXEL_VERS
+        ZYXEL_VERS \
+        LOADER_TYPE \
+        LOADER_FLASH_OFFS
+
+LOADADDR := 0x80100000
+LOADER_PLATFORM := realtek
+LOADER_FLASH_START := 0xb4000000
+
+define Build/loader-common
+	rm -rf $@.src
+	$(MAKE) -C lzma-loader \
+		PKG_BUILD_DIR="$@.src" \
+		TARGET_DIR="$(dir $@)" LOADER_NAME="$(notdir $@)" \
+		BOARD="$(BOARDNAME)" PLATFORM="$(LOADER_PLATFORM)" \
+		LOADADDR=$(LOADADDR) \
+		$(1) compile loader.$(LOADER_TYPE)
+	mv "$@.$(LOADER_TYPE)" "$@"
+	rm -rf $@.src
+endef
+
+define Build/loader-kernel
+	$(call Build/loader-common,LOADER_DATA="$@")
+endef
+
+define Build/loader-okli-compile
+	$(call Build/loader-common, \
+		FLASH_START=$(LOADER_FLASH_START) \
+		FLASH_OFFS=$(LOADER_FLASH_OFFS) \
+		FLASH_MAX=0 \
+	)
+endef
+
+define Build/append-loader-okli
+	cat "$(KDIR)/loader-$(word 1,$(1)).$(LOADER_TYPE)" >> "$@"
+endef
+
+define Build/prepend-loader-okli
+	cat "$(KDIR)/loader-$(word 1,$(1)).$(LOADER_TYPE)" "$@" >> "$@.new"
+	mv "$@.new" "$@"
+endef
 
 define Build/zyxel-vers
        ( echo VERS;\
@@ -22,6 +61,14 @@ define Build/zyxel-vers
                echo -n "V9.99($$hw.0) | ";\
                date -d @$(SOURCE_DATE_EPOCH) +%m/%d/%Y;\
        done ) >> $@
+endef
+
+define Build/zynsig
+	$(STAGING_DIR_HOST)/bin/zynsig \
+		-s \
+		-b "$@" \
+		-o "$@.new"
+	mv "$@.new" "$@"
 endef
 
 define Build/cameo-tag

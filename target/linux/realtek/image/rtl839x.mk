@@ -63,3 +63,34 @@ define Device/zyxel_gs1900-48
   ZYXEL_VERS := AAHN
 endef
 TARGET_DEVICES += zyxel_gs1900-48
+
+define Device/zyxel_gs1920-24hp
+  SOC := rtl8392
+  DEVICE_VENDOR := ZyXEL
+  DEVICE_MODEL := GS1920-24HP
+  COMPILE := loader-$(1).bin
+  COMPILE/loader-$(1).bin := loader-okli-compile | zynsig | pad-to 64k
+  ARTIFACTS := loader.bin
+  ARTIFACT/loader.bin := append-loader-okli $(1)
+  LOADER_TYPE := bin
+  LOADER_FLASH_OFFS := 0xc0000
+  IMAGE_SIZE := 7405568
+  IMAGES += factory.bin
+  IMAGE/factory.bin := \
+	append-loader-okli $(1) | \
+    append-kernel | \
+	pad-to 64k | \
+	append-rootfs | \
+	pad-rootfs
+  KERNEL := \
+	kernel-bin | \
+	append-dtb | \
+	lzma | \
+	uImage lzma -M 0x4f4b4c49
+  KERNEL_INITRAMFS := \
+	kernel-bin | \
+	append-dtb | \
+	lzma | \
+	loader-kernel
+endef
+TARGET_DEVICES += zyxel_gs1920-24hp
