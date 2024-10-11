@@ -1,5 +1,3 @@
-/dts-v1/;
-
 #include "danube.dtsi"
 
 #include <dt-bindings/input/input.h>
@@ -146,7 +144,8 @@
 
 &gsw {
 	phy-mode = "mii";
-	mtd-mac-address = <&boardconfig 0x16>;
+	nvmem-cells = <&macaddr_boardconfig_16>;
+	nvmem-cell-names = "mac-address";
 };
 
 &localbus {
@@ -167,7 +166,7 @@
 			};
 
 			partition@40000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x40000 0x20000>;
 			};
 
@@ -180,6 +179,16 @@
 				label = "board_config";
 				reg = <0xfe0000 0x20000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_boardconfig_16: macaddr@16 {
+						reg = <0x16 0x6>;
+					};
+				};
 			};
 		};
 	};
@@ -192,14 +201,14 @@
 	pinctrl-names = "default";
 
 	lantiq,external-clock;
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 	req-mask = <0xf>;
 
 	wifi@0,0 {
 		compatible = "pci0,0";
 		reg = <0x7000 0 0 0 0>;
 		ralink,mtd-eeprom = <&boardconfig 0x410>;
-		ralink,mtd-eeprom-swap;
+		ralink,eeprom-swap;
 	};
 };
 

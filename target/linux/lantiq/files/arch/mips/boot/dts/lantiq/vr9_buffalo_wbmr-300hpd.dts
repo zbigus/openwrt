@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "vr9.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 #include <dt-bindings/mips/lantiq_rcu_gphy.h>
 
 / {
@@ -75,13 +74,13 @@
 		compatible = "gpio-leds";
 
 		diag_r: diag_r {
-			label = "wbmr300:red:diag";
+			label = "red:diag";
 			gpios = <&gpio 0 GPIO_ACTIVE_HIGH>;
 			default_state = "off";
 		};
 
 		wifi_g: wifi_g {
-			label = "wbmr300:green:wifi";
+			label = "green:wifi";
 			gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;
 		};
 
@@ -91,52 +90,54 @@
 		};
 
 		router_y: router_y {
-			label = "wbmr300:yellow:router";
+			label = "yellow:router";
 			gpios = <&gpio 8 GPIO_ACTIVE_HIGH>;
 		};
 
 		wifi_y: wifi_y {
-			label = "wbmr300:yellow:wifi";
+			label = "yellow:wifi";
 			gpios = <&gpio 9 GPIO_ACTIVE_HIGH>;
 		};
 
 		lan1: lan1 {
-			label = "wbmr300:green:lan1";
+			label = "green:lan1";
 			gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
 		};
 
 		wan: wan {
-			label = "wbmr300:green:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 12 GPIO_ACTIVE_HIGH>;
 		};
 
 		lan3: lan3 {
-			label = "wbmr300:green:lan3";
+			label = "green:lan3";
 			gpios = <&gpio 15 GPIO_ACTIVE_HIGH>;
 		};
 
 		lan2: lan2 {
-			label = "wbmr300:green:lan2";
+			label = "green:lan2";
 			gpios = <&gpio 33 GPIO_ACTIVE_HIGH>;
 		};
 
 		internet_g: internet_g {
-			label = "wbmr300:green:internet";
+			label = "green:internet";
 			gpios = <&gpio 34 GPIO_ACTIVE_HIGH>;
 		};
 
 		internet_y: internet_y {
-			label = "wbmr300:yellow:internet";
+			label = "yellow:internet";
 			gpios = <&gpio 35 GPIO_ACTIVE_HIGH>;
 		};
 
 		router_g: router_g {
-			label = "wbmr300:green:router";
+			label = "green:router";
 			gpios = <&gpio 36 GPIO_ACTIVE_HIGH>;
 		};
 
 		power_g: power_g {
-			label = "wbmr300:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 49 GPIO_ACTIVE_HIGH>;
 		};
 	};
@@ -149,66 +150,8 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 
-		gpio = <&gpio 33 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 33 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-	};
-};
-
-&eth0 {
-	lan: interface@0 {
-		compatible = "lantiq,xrx200-pdi";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-		lantiq,switch;
-
-		ethernet@1 {
-			compatible = "lantiq,xrx200-pdi-port";
-			reg = <4>;
-			phy-mode = "mii";
-			phy-handle = <&phy13>;
-		};
-		ethernet@2 {
-			compatible = "lantiq,xrx200-pdi-port";
-			reg = <5>;
-			phy-mode = "mii";
-			phy-handle = <&phy14>;
-		};
-		ethernet@3 {
-			compatible = "lantiq,xrx200-pdi-port";
-			reg = <2>;
-			phy-mode = "mii";
-			phy-handle = <&phy11>;
-		};
-		ethernet@4 {
-			compatible = "lantiq,xrx200-pdi-port";
-			reg = <3>;
-			phy-mode = "mii";
-			phy-handle = <&phy12>;
-		};
-	};
-
-	mdio {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "lantiq,xrx200-mdio";
-
-		phy11: ethernet-phy@11 {
-			reg = <0x11>;
-			compatible = "lantiq,phy22f", "ethernet-phy-ieee802.3-c22";
-		};
-		phy12: ethernet-phy@12 {
-			reg = <0x12>;
-			compatible = "lantiq,phy22f", "ethernet-phy-ieee802.3-c22";
-		};
-		phy13: ethernet-phy@13 {
-			reg = <0x13>;
-			compatible = "lantiq,phy22f", "ethernet-phy-ieee802.3-c22";
-		};
-		phy14: ethernet-phy@14 {
-			reg = <0x14>;
-			compatible = "lantiq,phy22f", "ethernet-phy-ieee802.3-c22";
-		};
 	};
 };
 
@@ -236,6 +179,48 @@
 			lantiq,pull = <0>;
 			lantiq,output = <1>;
 		};
+	};
+};
+
+&gswip_mdio {
+	phy11: ethernet-phy@11 {
+		reg = <0x11>;
+	};
+	phy12: ethernet-phy@12 {
+		reg = <0x12>;
+	};
+	phy13: ethernet-phy@13 {
+		reg = <0x13>;
+	};
+	phy14: ethernet-phy@14 {
+		reg = <0x14>;
+	};
+};
+
+&gswip_ports {
+	port@2 {
+		reg = <2>;
+		label = "lan3";
+		phy-mode = "internal";
+		phy-handle = <&phy11>;
+	};
+	port@3 {
+		reg = <3>;
+		label = "lan4";
+		phy-mode = "internal";
+		phy-handle = <&phy12>;
+	};
+	port@4 {
+		reg = <4>;
+		label = "lan1";
+		phy-mode = "internal";
+		phy-handle = <&phy13>;
+	};
+	port@5 {
+		reg = <5>;
+		label = "lan2";
+		phy-mode = "internal";
+		phy-handle = <&phy14>;
 	};
 };
 
@@ -281,7 +266,7 @@
 
 			partition@ff0000 {
 				reg = <0xff0000 0x2000>;
-				label = "ubootconfig";
+				label = "u-boot-env";
 			};
 
 			partition@ff3000 {

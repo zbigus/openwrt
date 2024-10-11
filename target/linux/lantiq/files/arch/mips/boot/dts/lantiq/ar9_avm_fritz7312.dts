@@ -1,8 +1,8 @@
-/dts-v1/;
-
 #include "ar9.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
 	compatible = "avm,fritz7312", "lantiq,xway", "lantiq,ar9";
@@ -47,24 +47,26 @@
 		compatible = "gpio-leds";
 
 		power: power {
-			label = "fritz7312:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 		voice {
-			label = "fritz7312:green:fon";
+			label = "green:fon";
 			gpios = <&gpio 47 GPIO_ACTIVE_LOW>;
 		};
 		dect {
-			label = "fritz7312:green:dect";
+			label = "green:dect";
 			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 		};
 		wlan: wlan {
-			label = "fritz7312:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 		info_green: info_green {
-			label = "fritz7312:green:info";
+			label = "green:info";
 			gpios = <&gpio 35 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -98,8 +100,8 @@
 &gsw {
 	phy-mode = "rmii";
 	phy-handle = <&phy0>;
-	mtd-mac-address = <&ath9k_cal 0xa91>;
-	mtd-mac-address-increment = <(-2)>;
+	nvmem-cells = <&macaddr_ath9k_cal_a91 (-2)>;
+	nvmem-cell-names = "mac-address";
 
 	mdio-bus {
 		#address-cells = <1>;
@@ -108,6 +110,7 @@
 		phy0: ethernet-phy@0 {
 			reg = <0>;
 			reset-gpios = <&gpio 34 GPIO_ACTIVE_LOW>;
+			max-speed = <100>;
 		};
 	};
 };
@@ -127,11 +130,26 @@
 				label = "urlader";
 				reg = <0x00000 0x20000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_ath9k_cal_a91: macaddr@a91 {
+						compatible = "mac-base";
+						reg = <0xa91 0x6>;
+						#nvmem-cell-cells = <1>;
+					};
+				};
 			};
 
 			partition@20000 {
 				label = "firmware";
+				compatible = "openwrt,uimage", "denx,uimage";
 				reg = <0x20000 0xf60000>;
+				openwrt,ih-magic = <IH_MAGIC_OKLI>;
+				openwrt,offset = <0x11000>;
 			};
 
 			partition@f80000 {
@@ -159,7 +177,7 @@
 	pinctrl-names = "default";
 
 	req-mask = <0xf>;
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_LOW>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 
 	wifi@0,0 {
 		compatible = "pci0,0";

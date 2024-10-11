@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "ar9.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "zte,h201l", "lantiq,xway", "lantiq,ar9";
@@ -54,32 +53,36 @@
 		compatible = "gpio-leds";
 
 		power_green: power {
-			label = "h201l:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 		online: online {
-			label = "h201l:green:internet";
+			label = "green:internet";
 			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 		dsl: dsl {
-			label = "h201l:green:dsl";
+			label = "green:dsl";
 			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
 		};
 		phone {
-			label = "h201l:green:phone";
+			label = "green:phone";
 			gpios = <&gpio 39 GPIO_ACTIVE_LOW>;
 		};
 		wps {
-			label = "h201l:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 22 GPIO_ACTIVE_LOW>;
 		};
 		wifi: wifi {
-			label = "h201l:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
 		};
 		led_usb: usb {
-			label = "h201l:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -113,7 +116,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 
-		gpio = <&gpio 36 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 36 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 };
@@ -148,7 +151,7 @@
 			};
 
 			partition@20000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x20000 0x10000>;
 				read-only;
 			};

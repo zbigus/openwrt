@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "danube.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "arcadyan,arv4525pw", "lantiq,xway", "lantiq,danube";
@@ -53,23 +52,24 @@
 	leds {
 		compatible = "gpio-leds";
 		fxo {
-			label = "arv4525pw:green:festnetz";
+			label = "green:festnetz";
 			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
 		};
 		fxs {
-			label = "arv4525pw:green:internet";
+			label = "green:internet";
 			gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
 		};
 		dsl: dsl {
-			label = "arv4525pw:green:t-dsl";
+			label = "green:t-dsl";
 			gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
 		};
 		wifi: wifi {
-			label = "arv4525pw:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
 		};
 		online: online {
-			label = "arv4525pw:green:online";
+			label = "green:online";
 			gpios = <&gpio 9 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -95,7 +95,8 @@
 /* #define ARV4525PW_PHYRESET	13 */
 &gsw {
 	phy-mode = "mii";
-	mtd-mac-address = <&boardconfig 0x16>;
+	nvmem-cells = <&macaddr_boardconfig_16>;
+	nvmem-cell-names = "mac-address";
 };
 
 &localbus {
@@ -116,7 +117,7 @@
 			};
 
 			partition@10000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x10000 0x10000>;
 				read-only;
 			};
@@ -126,10 +127,20 @@
 				reg = <0x20000 0x3d0000>;
 			};
 
-			boardconfig: partition@400000 {
+			boardconfig: partition@3f0000 {
 				label = "boardconfig";
 				reg = <0x3f0000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_boardconfig_16: macaddr@16 {
+						reg = <0x16 0x6>;
+					};
+				};
 			};
 		};
 	};
@@ -141,7 +152,7 @@
 	pinctrl-0 = <&pci_gnt1_pins>, <&pci_req1_pins>;
 	pinctrl-names = "default";
 
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 };
 
 /* #define ARV4525PW_RELAY		31 */

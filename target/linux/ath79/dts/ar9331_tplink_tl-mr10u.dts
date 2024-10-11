@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
 
 #include "ar9331_tplink_tl-wr703n_tl-mr10u.dtsi"
 
@@ -9,5 +8,5 @@
 };
 
 &reg_usb_vbus {
-	gpio = <&gpio 18 GPIO_ACTIVE_HIGH>;
+	gpios = <&gpio 18 GPIO_ACTIVE_HIGH>;
 };

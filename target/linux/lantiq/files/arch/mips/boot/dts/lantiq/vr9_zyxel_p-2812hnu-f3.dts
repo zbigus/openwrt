@@ -1,10 +1,8 @@
-/dts-v1/;
-
 #include "vr9_zyxel_p-2812hnu-fx.dtsi"
 
 / {
 	compatible = "zyxel,p-2812hnu-f3", "zyxel,p-2812hnu", "lantiq,xway", "lantiq,vr9";
-	model = "ZyXEL P-2812HNU-F3";
+	model = "Zyxel P-2812HNU-F3";
 };
 
 &pci0 {
@@ -35,7 +33,7 @@
 				read-only;
 			};
 			partition@50000 {
-				label = "uboot-env";
+				label = "u-boot-env";
 				reg = <0x50000 0x10000>;
 			};
 			partition@60000 {
@@ -52,6 +50,8 @@
 		reg = <1 0x0 0x2000000>;
 		#address-cells = <1>;
 		#size-cells = <1>;
+
+		nand-use-soft-ecc-engine;
 
 		partition@0 {
 			label = "kernel";

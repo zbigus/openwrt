@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "danube.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "bt,homehub-v2b", "lantiq,xway", "lantiq,danube";
@@ -52,52 +51,55 @@
 		compatible = "gpio-leds";
 
 		upgrading-orange {
-			label = "bthomehubv2b:orange:upgrading";
+			label = "orange:upgrading";
 			gpios = <&gpios 5 GPIO_ACTIVE_HIGH>;
 		};
 
 		phone-orange {
-			label = "bthomehubv2b:orange:phone";
+			label = "orange:phone";
 			gpios = <&gpios 6 GPIO_ACTIVE_HIGH>;
 		};
 		phone-blue {
-			label = "bthomehubv2b:blue:phone";
+			label = "blue:phone";
 			gpios = <&gpios 7 GPIO_ACTIVE_HIGH>;
 		};
 
 		wireless-orange {
-			label = "bthomehubv2b:orange:wireless";
+			label = "orange:wireless";
 			gpios = <&gpios 8 GPIO_ACTIVE_HIGH>;
 		};
 		wireless_blue: wireless-blue {
-			label = "bthomehubv2b:blue:wireless";
+			label = "blue:wireless";
 			gpios = <&gpios 9 GPIO_ACTIVE_HIGH>;
 		};
 
 		broadband-red {
-			label = "bthomehubv2b:red:broadband";
+			label = "red:broadband";
 			gpios = <&gpios 10 GPIO_ACTIVE_HIGH>;
 		};
 		broadband-orange {
-			label = "bthomehubv2b:orange:broadband";
+			label = "orange:broadband";
 			gpios = <&gpios 11 GPIO_ACTIVE_HIGH>;
 		};
 		broadband_blue: broadband-blue {
-			label = "bthomehubv2b:blue:broadband";
+			label = "blue:broadband";
 			gpios = <&gpios 12 GPIO_ACTIVE_HIGH>;
 		};
 
 		power_red: power-red {
-			label = "bthomehubv2b:red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 			gpios = <&gpios 13 GPIO_ACTIVE_HIGH>;
 		};
 		power_orange: power-orange {
-			label = "bthomehubv2b:orange:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_ORANGE>;
 			gpios = <&gpios 14 GPIO_ACTIVE_HIGH>;
 			default-state = "keep";
 		};
 		power_blue: power-blue {
-			label = "bthomehubv2b:blue:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpios 15 GPIO_ACTIVE_HIGH>;
 		};
 	};
@@ -154,7 +156,7 @@
 			};
 
 			partition@40000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x40000 0x10000>; /* 64KB */
 			};
 
@@ -184,6 +186,8 @@
 
 		pinctrl-0 = <&nand_pins>, <&nand_cs1_pins>;
 		pinctrl-names = "default";
+
+		nand-use-soft-ecc-engine;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -215,7 +219,7 @@
 	pinctrl-0 = <&pci_gnt1_pins>, <&pci_req1_pins>;
 	pinctrl-names = "default";
 
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 
 	wifi@168c,0027 {
 		compatible = "pci168c,0027";

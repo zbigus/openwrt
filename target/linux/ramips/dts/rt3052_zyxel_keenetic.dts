@@ -1,13 +1,12 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "zyxel,keenetic", "ralink,rt3052-soc";
-	model = "ZyXEL Keenetic";
+	model = "Zyxel Keenetic";
 
 	aliases {
 		led-boot = &led_power;
@@ -16,7 +15,7 @@
 		led-upgrade = &led_power;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -39,16 +38,30 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
 				compatible = "denx,uimage";
 				label = "firmware";
-				reg = <0x50000 0x3b0000>;
+				reg = <0x50000 0x7b0000>;
 			};
 		};
 	};
@@ -57,19 +70,22 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "kn:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		usb {
-			label = "kn:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&otg_port1>;
 			linux,default-trigger = "usbport";
 		};
 
 		wps {
-			label = "kn:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -101,13 +117,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "uartf";
-		ralink,function = "gpio";
+		groups = "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -115,7 +132,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &otg {

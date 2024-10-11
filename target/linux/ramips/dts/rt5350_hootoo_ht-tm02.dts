@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt5350.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "hootoo,ht-tm02", "ralink,rt5350-soc";
@@ -20,12 +19,14 @@
 		compatible = "gpio-leds";
 
 		led_wlan: wlan {
-			label = "ht-tm02:blue:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 		};
 
 		lan {
-			label = "ht-tm02:green:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -49,14 +50,10 @@
 	};
 };
 
-&gpio0 {
-	status = "okay";
-};
-
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
@@ -78,10 +75,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -95,13 +106,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "jtag", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "jtag", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -110,13 +122,6 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
-};
-
-&ehci {
-	status = "okay";
-};
-
-&ohci {
-	status = "okay";
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

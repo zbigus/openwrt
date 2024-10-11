@@ -1,5 +1,3 @@
-/dts-v1/;
-
 #include "mt7628an_onion_omega2.dtsi"
 
 / {
@@ -7,10 +5,10 @@
 	model = "Onion Omega2+";
 };
 
-&firmware {
-	reg = <0x50000 0x1fb0000>;
+&flash0 {
+	broken-flash-reset;
 };
 
-&system_led {
-	label = "omega2p:amber:system";
+&firmware {
+	reg = <0x50000 0x1fb0000>;
 };

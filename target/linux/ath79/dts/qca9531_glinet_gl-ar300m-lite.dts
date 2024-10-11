@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
-/dts-v1/;
+#include <dt-bindings/leds/common.h>
 
 #include "qca9531_glinet_gl-ar300m.dtsi"
 
@@ -8,6 +8,7 @@
 	compatible = "glinet,gl-ar300m-lite", "qca,qca9531";
 	model = "GL.iNet GL-AR300M-Lite";
 };
+
 
 /delete-node/ &nand_flash;
 
@@ -23,13 +24,12 @@
 };
 
 &led_status {
-	label = "gl-ar300m-lite:red:status";
-};
-
-&led_lan {
-	label = "gl-ar300m-lite:green:lan";
+	function = LED_FUNCTION_STATUS;
+	color = <LED_COLOR_ID_RED>;
 };
 
 &led_wlan {
-	label = "gl-ar300m-lite:green:wlan";
+	function = LED_FUNCTION_WLAN;
+	color = <LED_COLOR_ID_GREEN>;
 };
+

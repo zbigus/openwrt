@@ -105,7 +105,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 
-		gpio = <&gpio 14 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 14 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 };
@@ -124,7 +124,8 @@
 
 &gsw {
 	phy-mode = "mii";
-	mtd-mac-address = <&boardconfig 0x16>;
+	nvmem-cells = <&macaddr_boardconfig_16>;
+	nvmem-cell-names = "mac-address";
 };
 
 &localbus {
@@ -145,7 +146,7 @@
 			};
 
 			partition@10000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x10000 0x10000>; /* 64 KB */
 				read-only;
 			};
@@ -155,10 +156,20 @@
 				reg = <0x20000 0x3d0000>;
 			};
 
-			boardconfig: partition@400000 {
+			boardconfig: partition@3f0000 {
 				label = "boardconfig";
 				reg = <0x3f0000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_boardconfig_16: macaddr@16 {
+						reg = <0x16 0x6>;
+					};
+				};
 			};
 		};
 	};
@@ -181,7 +192,7 @@
 		    <&pci_req1_pins>, <&pci_req2_pins>;
 	pinctrl-names = "default";
 
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 	req-mask = <0xf>;
 };
 

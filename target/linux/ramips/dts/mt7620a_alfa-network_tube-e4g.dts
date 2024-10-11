@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
 
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "alfa-network,tube-e4g", "ralink,mt7620a-soc";
@@ -70,29 +70,31 @@
 		compatible = "gpio-leds";
 
 		4g {
-			label = "tube-e4g:green:4g";
+			label = "green:4g";
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 		};
 
 		lan {
-			label = "tube-e4g:blue:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio2 4 GPIO_ACTIVE_LOW>;
 		};
 
 		power: power {
-			label = "tube-e4g:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 
 		sim1 {
-			label = "tube-e4g:green:sim1";
+			label = "green:sim1";
 			gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 
 		sim2 {
-			label = "tube-e4g:green:sim2";
+			label = "green:sim2";
 			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
@@ -104,11 +106,8 @@
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
-};
-
-&gpio0 {
-	status = "okay";
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &gpio1 {
@@ -117,10 +116,6 @@
 
 &gpio2 {
 	status = "okay";
-};
-
-&gsw {
-	mediatek,port4 = "ephy";
 };
 
 &ohci {
@@ -133,8 +128,8 @@
 
 &state_default {
 	gpio {
-		ralink,group = "ephy", "nd_sd", "pcie", "uartf";
-		ralink,function = "gpio";
+		groups = "ephy", "nd_sd", "pcie", "uartf";
+		function = "gpio";
 	};
 };
 
@@ -169,10 +164,20 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {

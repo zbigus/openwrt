@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
 
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "iodata,wn-ac1167gr", "ralink,mt7620a-soc";
@@ -21,23 +21,24 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "wn-ac1167gr:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
 
 		wlan2g {
-			label = "wn-ac1167gr:green:wlan2g";
+			label = "green:wlan2g";
 			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
 		};
 
 		notification {
-			label = "wn-ac1167gr:green:notification";
+			label = "green:notification";
 			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan5g {
-			label = "wn-ac1167gr:green:wlan5g";
+			label = "green:wlan5g";
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -91,16 +92,40 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x8000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
-			iNIC_rf: partition@48000 {
+			partition@48000 {
 				label = "iNIC_rf";
 				reg = <0x48000 0x8000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_iNIC_rf_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -139,7 +164,9 @@
 &ethernet {
 	pinctrl-names = "default";
 	pinctrl-0 = <&rgmii1_pins &mdio_pins>;
-	mtd-mac-address = <&factory 0x4>;
+
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 
 	port@5 {
 		status = "okay";
@@ -184,10 +211,14 @@
 	};
 };
 
+&gsw {
+	mediatek,ephy-base = /bits/ 8 <12>;
+};
+
 &state_default {
 	gpio {
-		ralink,group = "i2c", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "uartf";
+		function = "gpio";
 	};
 };
 
@@ -198,11 +229,13 @@
 &pcie0 {
 	wifi@0,0 {
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&iNIC_rf 0x0>;
+		nvmem-cells = <&eeprom_iNIC_rf_0>;
+		nvmem-cell-names = "eeprom";
 		ieee80211-freq-limit = <5000000 6000000>;
 	};
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0x0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include "ar9331.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "ar9331.dtsi"
 
 / {
 	model = "Pisen WMM003N";
 	compatible = "pisen,wmm003n", "qca,ar9331";
 
 	aliases {
-		serial0 = &uart;
 		led-boot = &led_system;
 		led-failsafe = &led_system;
 		led-running = &led_system;
@@ -33,7 +31,7 @@
 		compatible = "gpio-leds";
 
 		led_system: system {
-			label = "pisen:blue:system";
+			label = "blue:system";
 			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -43,14 +41,13 @@
 		regulator-name = "usb_vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio 8 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 8 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 };
 
 &spi {
 	status = "okay";
-	num-cs = <1>;
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
@@ -66,6 +63,16 @@
 				reg = <0x0 0x20000>;
 				label = "u-boot";
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_uboot_1fc00: macaddr@1fc00 {
+						reg = <0x1fc00 0x6>;
+					};
+				};
 			};
 
 			firmware: partition@20000 {
@@ -74,10 +81,20 @@
 				label = "firmware";
 			};
 
-			art: partition@7f0000 {
+			partition@7f0000 {
 				reg = <0x7f0000 0x10000>;
 				label = "art";
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					cal_art_1000: calibration@1000 {
+						reg = <0x1000 0x440>;
+					};
+				};
 			};
 		};
 	};
@@ -86,7 +103,8 @@
 &eth0 {
 	status = "okay";
 
-	mtd-mac-address = <&uboot 0x1fc00>;
+	nvmem-cells = <&macaddr_uboot_1fc00>;
+	nvmem-cell-names = "mac-address";
 
 	gmac-config {
 		device = <&gmac>;
@@ -101,14 +119,6 @@
 	compatible = "syscon", "simple-mfd";
 };
 
-&gpio {
-	status = "okay";
-};
-
-&uart {
-	status = "okay";
-};
-
 &usb {
 	dr_mode = "host";
 	vbus-supply = <&reg_usb_vbus>;
@@ -121,6 +131,7 @@
 
 &wmac {
 	status = "okay";
-	mtd-cal-data = <&art 0x1000>;
-	mtd-mac-address = <&uboot 0x1fc00>;
+
+	nvmem-cells = <&macaddr_uboot_1fc00>, <&cal_art_1000>;
+	nvmem-cell-names = "mac-address", "calibration";
 };

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include <dt-bindings/leds/common.h>
 
 #include "qca9563_tplink_archer-x6-v2.dtsi"
 
@@ -8,6 +9,8 @@
 	model = "TP-Link Archer C6 v2 (EU/RU/JP)";
 
 	aliases {
+		label-mac-device = &eth0;
+
 		led-boot = &led_power;
 		led-failsafe = &led_power;
 		led-running = &led_power;
@@ -18,40 +21,45 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "tp-link:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 17 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
 
 		wlan2g {
-			label = "tp-link:green:wlan2g";
+			label = "green:wlan2g";
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy1tpt";
 		};
 
 		wlan5g {
-			label = "tp-link:green:wlan5g";
+			label = "green:wlan5g";
 			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0tpt";
 		};
 
 		lan {
-			label = "tp-link:green:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 20 GPIO_ACTIVE_LOW>;
 		};
 
 		wan {
-			label = "tp-link:green:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 7 GPIO_ACTIVE_LOW>;
 		};
 
 		wan_fail {
-			label = "tp-link:amber:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_AMBER>;
 			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
 		};
 
 		wps {
-			label = "tp-link:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 9 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -75,10 +83,17 @@
 	};
 };
 
+&pcie {
+	wifi@0,0 {
+		compatible = "qcom,ath10k";
+		reg = <0x0000 0 0 0 0>;
+		nvmem-cells = <&precal_art_5000>, <&macaddr_info_8 (-1)>;
+		nvmem-cell-names = "pre-calibration", "mac-address";
+	};
+};
+
 &spi {
 	status = "okay";
-
-	num-cs = <1>;
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
@@ -96,10 +111,22 @@
 				read-only;
 			};
 
-			mac: partition@20000 {
-				label = "mac";
+			partition@20000 {
+				label = "info";
 				reg = <0x020000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_info_8: macaddr@8 {
+						compatible = "mac-base";
+						reg = <0x8 0x6>;
+						#nvmem-cell-cells = <1>;
+					};
+				};
 			};
 
 			partition@30000 {
@@ -114,11 +141,35 @@
 				read-only;
 			};
 
-			art: partition@7f0000 {
+			partition@7f0000 {
 				label = "art";
 				reg = <0x7f0000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					cal_art_1000: calibration@1000 {
+						reg = <0x1000 0x440>;
+					};
+
+					precal_art_5000: pre-calibration@5000 {
+						reg = <0x5000 0x2f20>;
+					};
+				};
 			};
 		};
 	};
+};
+
+&eth0 {
+	nvmem-cells = <&macaddr_info_8 0>;
+	nvmem-cell-names = "mac-address";
+};
+
+&wmac {
+	nvmem-cells = <&macaddr_info_8 0>, <&cal_art_1000>;
+	nvmem-cell-names = "mac-address", "calibration";
 };

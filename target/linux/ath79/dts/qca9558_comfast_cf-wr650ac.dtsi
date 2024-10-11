@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
+#include "qca955x.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "qca9557.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
-	};
-
 	keys {
 		compatible = "gpio-keys";
 
@@ -18,6 +15,33 @@
 			linux,code = <KEY_RESTART>;
 			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
 			debounce-interval = <60>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		wps {
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&gpio 20 GPIO_ACTIVE_LOW>;
+		};
+
+		network {
+			label = "blue:network";
+			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
+		};
+
+		wlan2g {
+			label = "blue:wlan2";
+			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy1tpt";
+		};
+
+		wlan5g {
+			label = "blue:wlan5";
+			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy0tpt";
 		};
 	};
 
@@ -31,10 +55,6 @@
 };
 
 &pcie0 {
-	status = "okay";
-};
-
-&uart {
 	status = "okay";
 };
 
@@ -55,7 +75,7 @@
 		qca,ar8327-initvals = <
 			0x04 0x87600000 /* PORT0 PAD MODE CTRL */
 			0x0c 0x00080080 /* PORT6 PAD MODE CTRL */
-			0x10 0x81000080 /* POWER_ON_STRIP */
+			0x10 0x81000080 /* POWER_ON_STRAP */
 			0x7c 0x0000007e /* PORT0_STATUS */
 			0x94 0x0000007e /* PORT6 STATUS */
 			>;
@@ -66,7 +86,7 @@
 	status = "okay";
 
 	pll-data = <0xa6000000 0x00000101 0x00001616>;
-	mtd-mac-address = <&art 0x0>;
+
 	fixed-link {
 		speed = <1000>;
 		full-duplex;
@@ -77,7 +97,7 @@
 	status = "okay";
 
 	pll-data = <0x03000101 0x00000101 0x00001616>;
-	mtd-mac-address = <&art 0x6>;
+
 	fixed-link {
 		speed = <1000>;
 		full-duplex;
@@ -86,9 +106,6 @@
 
 &wmac {
 	status = "okay";
-
-	mtd-cal-data = <&art 0x1000>;
-	mtd-mac-address = <&art 0x18>;
 };
 
 // This node is required for the Ethernet ports to work correctly.

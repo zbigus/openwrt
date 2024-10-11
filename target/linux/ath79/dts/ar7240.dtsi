@@ -15,6 +15,10 @@
 	};
 };
 
+&gpio {
+	ngpios = <18>;
+};
+
 &ahb {
 	usb: usb@1b000000 {
 		compatible = "generic-ohci";
@@ -29,6 +33,14 @@
 		phys = <&usb_phy>;
 
 		status = "disabled";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		hub_port: port@1 {
+			reg = <1>;
+			#trigger-source-cells = <0>;
+		};
 	};
 };
 
@@ -59,13 +71,14 @@
 };
 
 &eth0 {
+	status = "okay";
+
 	compatible = "qca,ar7240-eth", "syscon";
 
 	pll-data = <0x00110000 0x00001099 0x00991099>;
 
 	resets = <&rst 9>;
 	reset-names = "mac";
-	phy-mode = "mii";
 	phy-handle = <&swphy4>;
 };
 

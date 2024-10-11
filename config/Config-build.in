@@ -1,18 +1,38 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # Copyright (C) 2006-2013 OpenWrt.org
 # Copyright (C) 2016 LEDE Project
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
+
+config EXPERIMENTAL
+	bool "Enable experimental features by default"
+	help
+	  Set this option to build with latest bleeding edge features
+	  which may or may not work as expected.
+	  If you would like to help the development of OpenWrt, you are
+	  encouraged to set this option and provide feedback (both
+	  positive and negative). But do so only if you know how to
+	  recover your device in case of flashing potentially non-working
+	  firmware.
+
+	  If you plan to use this build in production, say NO!
 
 menu "Global build settings"
 
-	config JSON_ADD_IMAGE_INFO
-		bool "Create JSON info files per build image"
+	config JSON_OVERVIEW_IMAGE_INFO
+		bool "Create JSON info file overview per target"
+		default y
+		help
+		  Create a JSON info file called profiles.json in the target
+		  directory containing machine readable list of built profiles
+		  and resulting images.
+
+	config JSON_CYCLONEDX_SBOM
+		bool "Create CycloneDX SBOM JSON"
 		default BUILDBOT
 		help
-		  The JSON info files contain information about the device and
-		  build images, stored next to the firmware images.
+		  Create a JSON files *.bom.cdx.json in the build
+		  directory containing Software Bill Of Materials in CycloneDX
+		  format.
 
 	config ALL_NONSHARED
 		bool "Select all target specific packages by default"
@@ -29,7 +49,6 @@ menu "Global build settings"
 
 	config BUILDBOT
 		bool "Set build defaults for automatic builds (e.g. via buildbot)"
-		default n
 		help
 		  This option changes several defaults to be more suitable for
 		  automatic builds. This includes the following changes:
@@ -45,12 +64,20 @@ menu "Global build settings"
 		bool "Enable signature checking in opkg"
 		default SIGNED_PACKAGES
 
+	config DOWNLOAD_CHECK_CERTIFICATE
+		bool "Enable TLS certificate verification during package download"
+		default y
+
+	config USE_APK
+		imply PACKAGE_apk-mbedtls
+		bool "Use APK instead of OPKG to build distribution (EXPERIMENTAL)"
+
 	comment "General build options"
 
 	config TESTING_KERNEL
 		bool "Use the testing kernel version"
 		depends on HAS_TESTING_KERNEL
-		default n
+		default EXPERIMENTAL
 		help
 		  If the target supports a newer kernel version than the default,
 		  you can use this config option to enable it
@@ -58,10 +85,8 @@ menu "Global build settings"
 
 	config DISPLAY_SUPPORT
 		bool "Show packages that require graphics support (local or remote)"
-		default n
 
 	config BUILD_PATENTED
-		default n
 		bool "Compile with support for patented functionality"
 		help
 		  When this option is disabled, software which provides patented functionality
@@ -69,7 +94,6 @@ menu "Global build settings"
 		  functionality, this optional support will get disabled for this package.
 
 	config BUILD_NLS
-		default n
 		bool "Compile with full language support"
 		help
 		  When this option is enabled, packages are built with the full versions of
@@ -83,7 +107,6 @@ menu "Global build settings"
 	config CLEAN_IPKG
 		bool
 		prompt "Remove ipkg/opkg status data files in final images"
-		default n
 		help
 		  This removes all ipkg/opkg status data files from the target directory
 		  before building the root filesystem.
@@ -91,16 +114,24 @@ menu "Global build settings"
 	config IPK_FILES_CHECKSUMS
 		bool
 		prompt "Record files checksums in package metadata"
-		default n
+		depends on !USE_APK
 		help
 		  This makes file checksums part of package metadata. It increases size
-		  but provides you with pkg_check command to check for flash coruptions.
+		  but provides you with pkg_check command to check for flash corruptions.
 
 	config INCLUDE_CONFIG
 		bool "Include build configuration in firmware" if DEVEL
-		default n
 		help
-		  If enabled, config.buildinfo will be stored in /etc/build.config of firmware.
+		  If enabled, buildinfo files will be stored in /etc/build.* of firmware.
+
+	config REPRODUCIBLE_DEBUG_INFO
+		bool "Make debug information reproducible"
+		default BUILDBOT
+		help
+		  This strips the local build path out of debug information. This has the
+		  advantage of making it reproducible, but the disadvantage of making local
+		  debugging using ./scripts/remote-gdb harder, since the debug data will
+		  no longer point to the full path on the build host.
 
 	config COLLECT_KERNEL_DEBUG
 		bool
@@ -123,22 +154,44 @@ menu "Global build settings"
 	config DEBUG
 		bool
 		prompt "Compile packages with debugging info"
-		default n
 		help
 		  Adds -g3 to the CFLAGS.
 
-	config IPV6
+	config USE_GC_SECTIONS
 		bool
-		prompt "Enable IPv6 support in packages"
-		default y
+		prompt "Dead code and data elimination for all packages (EXPERIMENTAL)"
 		help
-		  Enables IPv6 support in kernel (builtin) and packages.
+		  Places functions and data items into its own sections to use the linker's
+		  garbage collection capabilites.
+		  Packages can choose to opt-out via setting PKG_BUILD_FLAGS:=no-gc-sections
+
+	config USE_LTO
+		bool
+		prompt "Use the link-time optimizer for all packages (EXPERIMENTAL)"
+		help
+		  Adds LTO flags to the CFLAGS and LDFLAGS.
+		  Packages can choose to opt-out via setting PKG_BUILD_FLAGS:=no-lto
+
+	config MOLD
+		depends on (aarch64 || arm || i386 || i686 || m68k || powerpc || powerpc64 || sh4 || x86_64)
+		depends on !GCC_USE_VERSION_11
+		def_bool $(shell, ./config/check-hostcxx.sh 10 2 12)
+
+	config USE_MOLD
+		bool
+		prompt "Use the mold linker for all packages"
+		depends on MOLD
+		help
+		  Link packages with mold, a modern linker
+		  Packages can opt-out via setting PKG_BUILD_FLAGS:=no-mold
+
+	config IPV6
+		def_bool y
 
 	comment "Stripping options"
 
 	choice
 		prompt "Binary stripping method"
-		default USE_STRIP   if EXTERNAL_TOOLCHAIN
 		default USE_STRIP   if USE_GLIBC
 		default USE_SSTRIP
 		help
@@ -154,7 +207,6 @@ menu "Global build settings"
 			bool "strip"
 			help
 			  This will install binaries stripped using strip from binutils.
-
 
 		config USE_SSTRIP
 			bool "sstrip"
@@ -172,8 +224,16 @@ menu "Global build settings"
 		help
 		  Specifies arguments passed to the strip command when stripping binaries.
 
+	config SSTRIP_DISCARD_TRAILING_ZEROES
+		bool "Strip trailing zero bytes"
+		depends on USE_SSTRIP && !USE_MOLD
+		default y
+		help
+		  Use sstrip's -z option to discard trailing zero bytes
+
 	config STRIP_KERNEL_EXPORTS
 		bool "Strip unnecessary exports from the kernel image"
+		depends on BROKEN
 		help
 		  Reduces kernel size by stripping unused kernel exports from the kernel
 		  image.  Note that this might make the kernel incompatible with any kernel
@@ -186,24 +246,6 @@ menu "Global build settings"
 		  selected packages (including those selected as <M>).  Note that this will
 		  make the system libraries incompatible with most of the packages that are
 		  not selected during the build process.
-
-	choice
-		prompt "Preferred standard C++ library"
-		default USE_LIBSTDCXX if USE_GLIBC
-		default USE_UCLIBCXX
-		help
-		  Select the preferred standard C++ library for all packages that support this.
-
-		config USE_UCLIBCXX
-			bool "uClibc++"
-
-		config USE_LIBCXX
-			bool "libc++"
-			depends on !USE_UCLIBC
-
-		config USE_LIBSTDCXX
-			bool "libstdc++"
-	endchoice
 
 	comment "Hardening build options"
 
@@ -248,7 +290,6 @@ menu "Global build settings"
 
 	choice
 		prompt "User space Stack-Smashing Protection"
-		depends on USE_MUSL
 		default PKG_CC_STACKPROTECTOR_REGULAR
 		help
 		  Enable GCC Stack Smashing Protection (SSP) for userspace applications
@@ -256,18 +297,15 @@ menu "Global build settings"
 			bool "None"
 		config PKG_CC_STACKPROTECTOR_REGULAR
 			bool "Regular"
-			select GCC_LIBSSP if !USE_MUSL
-			depends on KERNEL_CC_STACKPROTECTOR_REGULAR
 		config PKG_CC_STACKPROTECTOR_STRONG
 			bool "Strong"
-			select GCC_LIBSSP if !USE_MUSL
-			depends on KERNEL_CC_STACKPROTECTOR_STRONG
+		config PKG_CC_STACKPROTECTOR_ALL
+			bool "All"
 	endchoice
 
 	choice
 		prompt "Kernel space Stack-Smashing Protection"
 		default KERNEL_CC_STACKPROTECTOR_REGULAR
-		depends on USE_MUSL || !(x86_64 || i386)
 		help
 		  Enable GCC Stack-Smashing Protection (SSP) for the kernel
 		config KERNEL_CC_STACKPROTECTOR_NONE
@@ -278,11 +316,11 @@ menu "Global build settings"
 			bool "Strong"
 	endchoice
 
-	config  KERNEL_STACKPROTECTOR
+	config KERNEL_STACKPROTECTOR
 		bool
 		default KERNEL_CC_STACKPROTECTOR_REGULAR || KERNEL_CC_STACKPROTECTOR_STRONG
 
-	config  KERNEL_STACKPROTECTOR_STRONG
+	config KERNEL_STACKPROTECTOR_STRONG
 		bool
 		default KERNEL_CC_STACKPROTECTOR_STRONG
 
@@ -323,5 +361,59 @@ menu "Global build settings"
 		config PKG_RELRO_FULL
 			bool "Full"
 	endchoice
+
+	config TARGET_ROOTFS_SECURITY_LABELS
+		bool
+		select KERNEL_SQUASHFS_XATTR
+		select KERNEL_EXT4_FS_SECURITY
+		select KERNEL_F2FS_FS_SECURITY
+		select KERNEL_UBIFS_FS_SECURITY
+		select KERNEL_JFFS2_FS_SECURITY
+
+	config SELINUX
+		bool "Enable SELinux"
+		select KERNEL_SECURITY_SELINUX
+		select TARGET_ROOTFS_SECURITY_LABELS
+		select PACKAGE_procd-selinux
+		select PACKAGE_busybox-selinux
+		help
+		  This option enables SELinux kernel features, applies security labels
+		  in squashfs rootfs and selects the selinux-variants of busybox and procd.
+
+		  Selecting this option results in about 0.5MiB of additional flash space
+		  usage accounting for increased kernel and rootfs size.
+
+	choice
+		prompt "default SELinux type"
+		depends on TARGET_ROOTFS_SECURITY_LABELS
+		default SELINUXTYPE_dssp
+		help
+		  Select SELinux policy to be installed and used for applying rootfs labels.
+
+		config SELINUXTYPE_targeted
+			bool "targeted"
+			select PACKAGE_refpolicy
+			help
+			  SELinux Reference Policy (refpolicy)
+
+		config SELINUXTYPE_dssp
+			bool "dssp"
+			select PACKAGE_selinux-policy
+			help
+			  Defensec SELinux Security Policy -- OpenWrt edition
+
+	endchoice
+
+	config SECCOMP
+		bool "Enable SECCOMP"
+		select KERNEL_SECCOMP
+		select PACKAGE_procd-seccomp
+		depends on (aarch64 || arm || armeb || mips || mipsel || mips64 || mips64el || i386 || powerpc || x86_64)
+		depends on !TARGET_uml
+		default y
+		help
+		  This option enables seccomp kernel features to safely
+		  execute untrusted bytecode and selects the seccomp-variants
+		  of procd
 
 endmenu

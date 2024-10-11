@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "ar9.dtsi"
 
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "bt,homehub-v3a", "lantiq,xway", "lantiq,ar9";
@@ -51,42 +50,45 @@
 		compatible = "gpio-leds";
 
 		wireless-red {
-			label = "bthomehubv3a:red:wireless";
+			label = "red:wireless";
 			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
 		};
 		wireless-orange {
-			label = "bthomehubv3a:orange:wireless";
+			label = "orange:wireless";
 			gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
 		};
 		wireless_blue: wireless-blue {
-			label = "bthomehubv3a:blue:wireless";
+			label = "blue:wireless";
 			gpios = <&gpio 9 GPIO_ACTIVE_LOW>;
 		};
 
 		broadband-red {
-			label = "bthomehubv3a:red:broadband";
+			label = "red:broadband";
 			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		};
 		broadband-orange {
-			label = "bthomehubv3a:orange:broadband";
+			label = "orange:broadband";
 			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
 		};
 		broadband_blue: broadband-blue {
-			label = "bthomehubv3a:blue:broadband";
+			label = "blue:broadband";
 			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
 		};
 
 		power_red: power-red {
-			label = "bthomehubv3a:red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 		};
 		power_orange: power-orange {
-			label = "bthomehubv3a:orange:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_ORANGE>;
 			gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 		power_blue: power-blue {
-			label = "bthomehubv3a:blue:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio 1 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -99,7 +101,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 
-		gpio = <&gpio 33 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 33 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 };
@@ -132,6 +134,8 @@
 		pinctrl-0 = <&nand_pins>, <&nand_cs1_pins>;
 		pinctrl-names = "default";
 
+		nand-use-soft-ecc-engine;
+
 		partitions {
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
@@ -148,7 +152,7 @@
 				read-only;
 			};
 			partition@64000 {
-				label = "uboot_env";
+				label = "u-boot-env";
 				reg = <0x64000 0x004000>;
 			};
 			ath9k_cal: partition@68000 {
@@ -173,7 +177,7 @@
 	pinctrl-0 = <&pci_gnt1_pins>, <&pci_req1_pins>;
 	pinctrl-names = "default";
 
-	gpio-reset = <&gpio 21 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 
 	wifi@7000 {
 		reg = <0x7000 0 0 0 0>;

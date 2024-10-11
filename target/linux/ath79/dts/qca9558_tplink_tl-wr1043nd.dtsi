@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
+#include "qca955x.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "qca9557.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
-	};
-
 	aliases {
 		led-boot = &led_system;
 		led-failsafe = &led_system;
@@ -22,26 +19,29 @@
 		compatible = "gpio-leds";
 
 		led_system: system {
-			label = "tp-link:green:system";
+			label = "green:system";
 			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "heartbeat";
 		};
 
 		usb {
-			label = "tp-link:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&hub_port0>;
 			linux,default-trigger = "usbport";
 		};
 
 		wifi_green {
-			label = "tp-link:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0tpt";
 		};
 
 		wifi_wps {
-			label = "tp-link:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -76,47 +76,43 @@
 	};
 };
 
-&uart {
-	status = "okay";
-};
-
-&gpio {
-	status = "okay";
-};
-
 &usb_phy0 {
 	status = "okay";
 };
 
 &usb0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
 	status = "okay";
-
-	hub_port0: port@1 {
-		reg = <1>;
-		#trigger-source-cells = <0>;
-	};
 };
 
 &spi {
 	status = "okay";
-	num-cs = <1>;
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <25000000>;
+		spi-max-frequency = <33400000>;
 
 		partitions {
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			uboot:	partition@0 {
+			uboot: partition@0 {
 				label = "u-boot";
 				reg = <0x000000 0x020000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_uboot_1fc00: macaddr@1fc00 {
+						compatible = "mac-base";
+						reg = <0x1fc00 0x6>;
+						#nvmem-cell-cells = <1>;
+					};
+				};
 			};
 
 			partition@20000 {
@@ -125,10 +121,20 @@
 				reg = <0x020000 0x7d0000>;
 			};
 
-			art: partition@7f0000 {
+			partition@7f0000 {
 				label = "art";
 				reg = <0x7f0000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					cal_art_1000: calibration@1000 {
+						reg = <0x1000 0x440>;
+					};
+				};
 			};
 		};
 	};
@@ -142,7 +148,7 @@
 		qca,ar8327-initvals = <
 			0x04 0x00080080 /* PORT0 PAD MODE CTRL */
 			0x0c 0x07600000 /* PORT6 PAD MODE CTRL */
-			0x10 0x81000080 /* POWER_ON_STRIP */
+			0x10 0x81000080 /* POWER_ON_STRAP */
 			0x50 0xcc35cc35 /* LED_CTRL0 */
 			0x54 0xca35ca35 /* LED_CTRL1 */
 			0x58 0xc935c935 /* LED_CTRL2 */
@@ -158,8 +164,8 @@
 
 	pll-data = <0x56000000 0x00000101 0x00001616>;
 
-	mtd-mac-address = <&uboot 0x1fc00>;
-	mtd-mac-address-increment = <1>;
+	nvmem-cells = <&macaddr_uboot_1fc00 1>;
+	nvmem-cell-names = "mac-address";
 	phy-handle = <&phy0>;
 };
 
@@ -168,7 +174,8 @@
 
 	pll-data = <0x03000101 0x00000101 0x00001616>;
 
-	mtd-mac-address = <&uboot 0x1fc00>;
+	nvmem-cells = <&macaddr_uboot_1fc00 0>;
+	nvmem-cell-names = "mac-address";
 
 	fixed-link {
 		speed = <1000>;
@@ -178,6 +185,7 @@
 
 &wmac {
 	status = "okay";
-	mtd-cal-data = <&art 0x1000>;
-	mtd-mac-address = <&uboot 0x1fc00>;
+
+	nvmem-cells = <&macaddr_uboot_1fc00 0>, <&cal_art_1000>;
+	nvmem-cell-names = "mac-address", "calibration";
 };

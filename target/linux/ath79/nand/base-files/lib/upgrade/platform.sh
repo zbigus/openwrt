@@ -7,7 +7,7 @@ platform_check_image() {
 	return 0
 }
 
-RAMFS_COPY_BIN='fw_printenv fw_setenv'
+RAMFS_COPY_BIN='fw_printenv fw_setenv nandwrite'
 RAMFS_COPY_DATA='/etc/fw_env.config /var/lock/fw_printenv.lock'
 
 platform_do_upgrade() {
@@ -19,7 +19,11 @@ platform_do_upgrade() {
 		glinet_nand_nor_do_upgrade "$1"
 		;;
 	glinet,gl-ar750s-nor|\
-	glinet,gl-ar750s-nor-nand)
+	glinet,gl-ar750s-nor-nand|\
+	glinet,gl-s200-nor|\
+	glinet,gl-s200-nor-nand|\
+	glinet,gl-x1200-nor|\
+	glinet,gl-x1200-nor-nand)
 		nand_nor_do_upgrade "$1"
 		;;
 	*)

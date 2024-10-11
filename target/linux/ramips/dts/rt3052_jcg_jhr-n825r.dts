@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "jcg,jhr-n825r", "ralink,rt3052-soc";
@@ -16,7 +15,7 @@
 		led-upgrade = &led_system;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -39,10 +38,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_2e: macaddr@2e {
+						reg = <0x2e 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -56,7 +69,8 @@
 	leds {
 		compatible = "gpio-leds";
 		led_system: system {
-			label = "jhr-n825r:red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -74,13 +88,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x2e>;
+	nvmem-cells = <&macaddr_factory_2e>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -88,5 +103,6 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

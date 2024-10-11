@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+/dts-v1/;
+
+#include <dt-bindings/clock/ath79-clk.h>
+
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
@@ -48,8 +52,9 @@
 
 			interrupts = <4>;
 			phy-mode = "mii";
+			syscon-no-reset;
 
-			mdio0: mdio-bus {
+			mdio0: mdio {
 				status = "disabled";
 
 				compatible = "qca,ath79-mdio";
@@ -71,8 +76,9 @@
 
 			interrupts = <5>;
 			phy-mode = "mii";
+			syscon-no-reset;
 
-			mdio1: mdio-bus {
+			mdio1: mdio {
 				status = "disabled";
 
 				compatible = "qca,ath79-mdio";

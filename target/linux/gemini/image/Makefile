@@ -1,9 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2009-2018 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
+
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
@@ -57,8 +55,9 @@ define Build/dns313-images
 		--root $@.tmp $@.tmp-boot
 
 	# The device firmware needs revision 1 of EXT2
-	tune2fs -O filetype $@.tmp-boot
-	e2fsck -pDf $@.tmp-boot > /dev/null
+	$(STAGING_DIR_HOST)/bin/tune2fs -O filetype $@.tmp-boot
+	# Ignore errors because file system was intentionally broken with tune2fs
+	-$(STAGING_DIR_HOST)/bin/e2fsck -pDf $@.tmp-boot > /dev/null
 
 	./dns313_gen_hdd_img.sh $@ $@.tmp-boot $(IMAGE_ROOTFS) \
 		$(CONFIG_TARGET_KERNEL_PARTSIZE) \
@@ -126,21 +125,22 @@ endef
 # All DTB files are prefixed with "gemini-"
 define Device/Default
 	PROFILES := Default
+	DEVICE_DTS_DIR = $$(DTS_DIR)/gemini
 	KERNEL_DEPENDS = $$(wildcard $(DTS_DIR)/$$(DEVICE_DTS).dts)
 	KERNEL_NAME := zImage
 	KERNEL := kernel-bin | append-dtb
 	BLOCKSIZE := 128k
-	SUPPORTED_DEVICES := $(subst _,$(comma),$(1))
 endef
 
 # A reasonable set of default packages handling the NAS type
 # of devices out of the box (former NAS42x0 IcyBox defaults)
-GEMINI_NAS_PACKAGES:=kmod-md-mod kmod-md-linear kmod-md-multipath \
+GEMINI_NAS_PACKAGES := $(DEFAULT_PACKAGES.nas) \
+		kmod-md-mod kmod-md-linear kmod-md-multipath \
 		kmod-md-raid0 kmod-md-raid1 kmod-md-raid10 kmod-md-raid456 \
 		kmod-fs-btrfs kmod-fs-cifs kmod-fs-nfs \
 		kmod-fs-nfsd kmod-fs-ntfs kmod-fs-reiserfs kmod-fs-vfat \
-		kmod-nls-utf8 kmod-usb-storage-extras \
-		samba36-server mdadm cfdisk fdisk e2fsprogs badblocks \
+		kmod-nls-utf8 kmod-usb-storage-extras kmod-hwmon-drivetemp \
+		cfdisk e2fsprogs badblocks \
 		partx-utils
 
 # The DIR-685 flash layout is kernel in WRGG format, padded and followed
@@ -170,7 +170,6 @@ define Device/dlink_dns-313
 	DEVICE_VENDOR := D-Link
 	DEVICE_MODEL := DNS-313 1-Bay Network Storage Enclosure
 	DEVICE_DTS := gemini-dlink-dns-313
-	DEVICE_TYPE := nas
 	DEVICE_PACKAGES := $(GEMINI_NAS_PACKAGES)
 	BLOCKSIZE := 1k
 	FILESYSTEMS := ext4
@@ -184,6 +183,7 @@ define Device/storlink-reference
 	COMPILE := copy-kernel-$(1).bin
 	COMPILE/copy-kernel-$(1).bin := copy-kernel.bin
 	IMAGES := factory.bin
+	FILESYSTEMS := squashfs
 	IMAGE/factory.bin := append-rootfs | pad-rootfs | pad-to 6144k | \
 		storlink-default-images $(1)
 	DEVICE_PACKAGES := $(GEMINI_NAS_PACKAGES)
@@ -203,7 +203,6 @@ define Device/raidsonic_ib-4220-b
 	DEVICE_VENDOR := Raidsonic
 	DEVICE_MODEL := NAS IB-4220-B
 	DEVICE_DTS := gemini-nas4220b
-	DEVICE_TYPE := nas
 endef
 TARGET_DEVICES += raidsonic_ib-4220-b
 
@@ -218,8 +217,8 @@ TARGET_DEVICES += storlink_sl93512r
 
 # The wiliboard images need some changes to be functional and buildable.
 #
-# The dts would need to use the ecoscentric,redboot-fis-partitions partition
-# parser to get the correct partition offsets and size.
+# The dts would need to use the redboot-fis partition parser to get
+# the correct partition offsets and size.
 #
 # The mkfwimage2 call need to be adjusted to reflect the real size of kernel
 # and rootfs. It is expected that the OEM firmware adjusts the on flash

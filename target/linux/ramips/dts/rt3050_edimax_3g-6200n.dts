@@ -1,9 +1,9 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
 	compatible = "edimax,3g-6200n", "ralink,rt3050-soc";
@@ -16,7 +16,7 @@
 		led-upgrade = &led_power;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -39,10 +39,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@3e0000 {
@@ -52,7 +66,9 @@
 			};
 
 			partition@50000 {
-				compatible = "edimax,uimage";
+				compatible = "openwrt,uimage", "denx,uimage";
+				openwrt,offset = <FW_EDIMAX_OFFSET>;
+				openwrt,partition-magic = <FW_MAGIC_EDIMAX>;
 				label = "firmware";
 				reg = <0x50000 0x390000>;
 			};
@@ -63,17 +79,19 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "3g-6200n:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "3g-6200n:amber:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_AMBER>;
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 
 		3g {
-			label = "3g-6200n:blue:3g";
+			label = "blue:3g";
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&otg_port1>;
 			linux,default-trigger = "usbport";
@@ -100,13 +118,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -114,7 +133,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &otg {

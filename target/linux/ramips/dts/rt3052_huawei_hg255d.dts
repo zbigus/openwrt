@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "huawei,hg255d", "ralink,rt3052-soc";
@@ -16,7 +15,7 @@
 		led-upgrade = &led_power;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x1000000>;
 		bank-width = <2>;
@@ -39,10 +38,24 @@
 				read-only;
 			};
 
-			factory: partition@60000 {
+			partition@60000 {
 				label = "factory";
 				reg = <0x60000 0x20000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@80000 {
@@ -63,34 +76,38 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "hg255d:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 		};
 
 		internet {
-			label = "hg255d:green:internet";
+			label = "green:internet";
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi {
-			label = "hg255d:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 
 		usb {
-			label = "hg255d:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&otg_port1>;
 			linux,default-trigger = "usbport";
 		};
 
 		wps {
-			label = "hg255d:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 		};
 
 		voice {
-			label = "hg255d:green:voice";
+			label = "green:voice";
 			gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -121,13 +138,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -135,7 +153,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &otg {

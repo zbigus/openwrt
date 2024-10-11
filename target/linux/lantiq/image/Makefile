@@ -1,9 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2010-2016 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 
 # boards missing since devicetree update
 #EASY50712 ARV3527P
@@ -52,24 +49,54 @@ define Build/fullimage
 	rm $@.tmp
 endef
 
+define Build/loader-common
+	rm -rf $@.src
+	$(MAKE) -C lzma-loader \
+		PKG_BUILD_DIR="$@.src" \
+		TARGET_DIR="$(dir $@)" LOADER_NAME="$(notdir $@)" \
+		BOARD="$(BOARDNAME)" PLATFORM="lantiq" \
+		LZMA_TEXT_START=0x82000000 \
+		LOADADDR=0x80002000 \
+		$(1) compile loader.bin
+	mv "$@.bin" "$@"
+	rm -rf $@.src
+endef
+
+define Build/loader-kernel
+	$(call Build/loader-common,LOADER_DATA="$@")
+endef
+
+define Build/loader-okli-compile
+	$(call Build/loader-common, \
+		FLASH_START=0x10000000 \
+		FLASH_OFFS=$(LOADER_FLASH_OFFS) \
+		FLASH_MAX=0x0 \
+	)
+endef
+
+define Build/prepend-loader-okli
+	cat "$(KDIR)/loader-$(word 1,$(1)).bin" "$@" >> "$@.new"
+	mv "$@.new" "$@"
+endef
+
+DEVICE_VARS += SIGNATURE MAGIC CRC32_POLY LOADER_FLASH_OFFS
+
 DTS_DIR := $(DTS_DIR)/lantiq
 
 # Shared device definition: applies to every defined device
 define Device/Default
   PROFILES = Default
+  COMPILE :=
   KERNEL_DEPENDS = $$(wildcard $(DTS_DIR)/$$(DEVICE_DTS).dts)
   KERNEL_INITRAMFS_NAME = $$(KERNEL_NAME)-initramfs
   KERNEL := kernel-bin | append-dtb | lzma | uImage lzma
   KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | uImage lzma
   FILESYSTEMS := squashfs
-  IMAGE_SIZE :=
   SOC := $(DEFAULT_SOC)
   DEVICE_DTS = $$(SOC)_$(1)
-  SUPPORTED_DEVICES := $(subst _,$(comma),$(1))
   IMAGES := sysupgrade.bin
-  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | append-metadata | check-size $$$$(IMAGE_SIZE)
+  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | check-size | append-metadata
 endef
-DEVICE_VARS += IMAGE_SIZE
 
 define Device/NAND/xway
   BLOCKSIZE := 16k
@@ -93,14 +120,13 @@ endef
 define Device/lantiqBrnImage
   KERNEL := kernel-bin | append-dtb | mkbrncmdline | lzma-no-dict
   IMAGES := factory.bin
-  IMAGE/factory.bin := mkbrnimg | check-size $$$$(IMAGE_SIZE)
+  IMAGE/factory.bin := mkbrnimg | check-size
 endef
-DEVICE_VARS += SIGNATURE MAGIC CRC32_POLY
 
 define Device/lantiqFullImage
   KERNEL := kernel-bin | append-dtb | lzma | uImage lzma | pad-offset 4 0
   IMAGES := sysupgrade.bin fullimage.bin
-  IMAGE/fullimage.bin := fullimage | check-size $$$$(IMAGE_SIZE)
+  IMAGE/fullimage.bin := fullimage | check-size
 endef
 
 define Device/AVM
@@ -108,7 +134,17 @@ define Device/AVM
   KERNEL := kernel-bin | append-dtb | lzma | eva-image
   KERNEL_INITRAMFS := $$(KERNEL)
   IMAGE/sysupgrade.bin := append-kernel | pad-to 64k | append-avm-fakeroot | \
-	append-rootfs | pad-rootfs | append-metadata | check-size $$$$(IMAGE_SIZE)
+	append-rootfs | pad-rootfs | check-size | append-metadata
+endef
+
+define Device/AVM_preloader
+  DEVICE_VENDOR := AVM
+  COMPILE := loader-$(1).bin
+  COMPILE/loader-$(1).bin := loader-okli-compile | lzma | eva-image | \
+	pad-to 64k | append-avm-fakeroot | pad-to 4k
+  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | \
+	prepend-loader-okli $(1)
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | eva-image
 endef
 
 ifeq ($(SUBTARGET),ase)

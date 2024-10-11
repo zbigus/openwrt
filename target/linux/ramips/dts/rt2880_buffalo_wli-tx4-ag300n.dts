@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt2880.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	#address-cells = <1>;
@@ -18,7 +17,7 @@
 		led-upgrade = &led_power;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -41,10 +40,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -82,29 +95,27 @@
 		compatible = "gpio-leds";
 
 		diag {
-			label = "wli-tx4-ag300n:red:diag";
+			label = "red:diag";
 			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power: power {
-			label = "wli-tx4-ag300n:blue:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 		};
 
 		security {
-			label = "wli-tx4-ag300n:blue:security";
+			label = "blue:security";
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
 
-&gpio0 {
-	status = "okay";
-};
-
 &ethernet {
 	status = "okay";
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 
 	port@0 {
 		mediatek,fixed-link = <100 1 1 1>;
@@ -121,5 +132,6 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

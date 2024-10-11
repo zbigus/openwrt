@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include "qca956x.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "qca956x.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Phicomm K2T";
@@ -17,25 +17,24 @@
 		led-upgrade = &led_status_red;
 	};
 
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
-	};
-
 	leds {
 		compatible = "gpio-leds";
 
 		status_blue {
-			label = "phicomm:blue:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
 		};
 
 		led_status_red: status_red {
-			label = "phicomm:red:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_RED>;
 			gpios = <&gpio 7 GPIO_ACTIVE_HIGH>;
 		};
 
 		status_yellow {
-			label = "phicomm:yellow:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_YELLOW>;
 			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -51,21 +50,18 @@
 	};
 };
 
-&uart {
-	status = "okay";
-};
-
-&gpio {
-	status = "okay";
-};
-
 &pcie {
 	status = "okay";
+
+	wifi@0,0 {
+		compatible = "qcom,ath10k";
+		reg = <0x0000 0 0 0 0>;
+		nvmem-cells = <&precal_art_5000>;
+		nvmem-cell-names = "pre-calibration";
+	};
 };
 
 &spi {
-	num-cs = <1>;
-
 	status = "okay";
 
 	flash@0 {
@@ -102,10 +98,24 @@
 				reg = <0x090000 0xf60000>;
 			};
 
-			art: partition@ff0000 {
+			partition@ff0000 {
 				label = "art";
 				reg = <0xff0000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					cal_art_1000: calibration@1000 {
+						reg = <0x1000 0x440>;
+					};
+
+					precal_art_5000: pre-calibration@5000 {
+						reg = <0x5000 0x2f20>;
+					};
+				};
 			};
 		};
 	};
@@ -114,15 +124,13 @@
 &mdio0 {
 	status = "okay";
 
-	phy-mask = <0>;
-
 	phy0: ethernet-phy@0 {
 		reg = <0>;
 		phy-mode = "sgmii";
 
 		qca,ar8327-initvals = <
 			0x04 0x00080080 /* PORT0 PAD MODE CTRL */
-			0x10 0x81000080 /* POWER_ON_STRIP */
+			0x10 0x81000080 /* POWER_ON_STRAP */
 			0x50 0xcc35cc35 /* LED_CTRL0 */
 			0x54 0xcb37cb37 /* LED_CTRL1 */
 			0x58 0x00000000 /* LED_CTRL2 */
@@ -143,5 +151,7 @@
 
 &wmac {
 	status = "okay";
-	mtd-cal-data = <&art 0x1000>;
+
+	nvmem-cells = <&cal_art_1000>;
+	nvmem-cell-names = "calibration";
 };

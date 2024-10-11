@@ -1,107 +1,125 @@
+# SPDX-License-Identifier: GPL-2.0-only
 # ===========================================================================
 # OpenWrt configuration targets
-# These targets are used from top-level makefile
+
+.PHONY: clean all
+all: conf mconf
+clean:
+	rm -f $(clean-files) $(hostprogs)
+
+clean-files	:= *.o lxdialog/*.o *.moc qconf-moc.cc \
+		   *conf-cfg # <- This should be removed after 23.05 is EOL
 
 # ===========================================================================
-# Shared Makefile for the various kconfig executables:
-# conf:	  Used for defconfig, oldconfig and related targets
-# mconf:  Used for the mconfig target.
-#         Utilizes the lxdialog package
-# qconf:  Used for the xconfig target
-#         Based on Qt which needs to be installed to compile it
+# Variables needed by the upstream Makefile
+
+export HOSTPKG_CONFIG=pkg-config
+CONFIG_SHELL:=$(SHELL)
+src:=$(CURDIR)
+obj:=.
+Q:=$(if $V,,@)
+quiet:=$(if $V,,_silent)
+include Kbuild.include
+
+### Stripped down upstream Makefile follows:
+# ===========================================================================
 # object files used by all kconfig flavours
+common-objs	:= confdata.o expr.o lexer.lex.o menu.o parser.tab.o \
+		   preprocess.o symbol.o util.o
 
+$(obj)/lexer.lex.o: $(obj)/parser.tab.h
+HOSTCFLAGS_lexer.lex.o	:= -I $(srctree)/$(src)
+HOSTCFLAGS_parser.tab.o	:= -I $(srctree)/$(src)
 
-# Platform specific fixes
-#
-# FreeBSD
+# conf: Used for defconfig, oldconfig and related targets
+hostprogs	+= conf
+conf-objs	:= conf.o $(common-objs)
 
-check_lxdialog = $(shell $(SHELL) $(CURDIR)/lxdialog/check-lxdialog.sh -$(1))
-export CFLAGS += -DKBUILD_NO_NLS -I. $(call check_lxdialog,ccflags)
-export CXXFLAGS += -DKBUILD_NO_NLS
+# nconf: Used for the nconfig target based on ncurses
+hostprogs	+= nconf
+nconf-objs	:= nconf.o nconf.gui.o $(common-objs)
 
-conf-objs	:= conf.o zconf.tab.o
-mconf-objs	:= mconf.o zconf.tab.o
-qconf-cxxobjs	:= qconf.o
-qconf-objs	:= zconf.tab.o
+HOSTLDLIBS_nconf       = $(call read-file, $(obj)/nconf-libs)
+HOSTCFLAGS_nconf.o     = $(call read-file, $(obj)/nconf-cflags)
+HOSTCFLAGS_nconf.gui.o = $(call read-file, $(obj)/nconf-cflags)
 
-lxdialog-objs := \
-	lxdialog/checklist.o lxdialog/util.o lxdialog/inputbox.o \
-	lxdialog/textbox.o lxdialog/yesno.o lxdialog/menubox.o
+$(obj)/nconf: | $(obj)/nconf-libs
+$(obj)/nconf.o $(obj)/nconf.gui.o: | $(obj)/nconf-cflags
 
-clean-files	:= zconf.tab.c zconf.lex.c zconf.hash.c
-# Remove qconf junk files
-clean-files	+= $(qconf-cxxobjs) qconf.moc .tmp_qtcheck qconf
+# mconf: Used for the menuconfig target based on lxdialog
+hostprogs	+= mconf
+lxdialog	:= $(addprefix lxdialog/, \
+		     checklist.o inputbox.o menubox.o textbox.o util.o yesno.o)
+mconf-objs	:= mconf.o $(lxdialog) $(common-objs)
 
-all: conf mconf
+HOSTLDLIBS_mconf = $(call read-file, $(obj)/mconf-libs)
+$(foreach f, mconf.o $(lxdialog), \
+  $(eval HOSTCFLAGS_$f = $$(call read-file, $(obj)/mconf-cflags)))
 
-conf: $(conf-objs)
-mconf: $(mconf-objs) $(lxdialog-objs)
-	$(CC) -o $@ $^ $(call check_lxdialog,ldflags $(CC))
-qconf: $(qconf-cxxobjs) $(qconf-objs)
-ifneq ($(DISTRO-PKG-CONFIG),)
-	$(CXX) -o $@ $^ $(HOSTLOADLIBES_qconf)
-else
-	echo "You don't have 'pkg-config' installed. Cannot continue"
-	echo "For now, you may use 'make menuconfig' instead of 'make xconfig'"
-endif
+$(obj)/mconf: | $(obj)/mconf-libs
+$(addprefix $(obj)/, mconf.o $(lxdialog)): | $(obj)/mconf-cflags
 
-clean:
-	rm -f *.o lxdialog/*.o $(clean-files) conf mconf
+# qconf: Used for the xconfig target based on Qt
+hostprogs	+= qconf
+qconf-cxxobjs	:= qconf.o qconf-moc.o
+qconf-objs	:= images.o $(common-objs)
 
-zconf.tab.o: zconf.lex.c zconf.hash.c confdata.c
+HOSTLDLIBS_qconf         = $(call read-file, $(obj)/qconf-libs)
+HOSTCXXFLAGS_qconf.o     = -std=c++11 -fPIC $(call read-file, $(obj)/qconf-cflags)
+HOSTCXXFLAGS_qconf-moc.o = -std=c++11 -fPIC $(call read-file, $(obj)/qconf-cflags)
+$(obj)/qconf: | $(obj)/qconf-libs
+$(obj)/qconf.o $(obj)/qconf-moc.o: | $(obj)/qconf-cflags
 
-kconfig_load.o: lkc_defs.h
+quiet_cmd_moc = MOC     $@
+      cmd_moc = $(call read-file, $(obj)/qconf-bin)/moc $< -o $@
 
-zconf.tab.c: zconf.y $(wildcard zconf.tab.c_shipped)
-zconf.lex.c: zconf.l $(wildcard zconf.lex.c_shipped)
-zconf.hash.c: zconf.gperf $(wildcard zconf.hash.c_shipped)
+$(obj)/qconf-moc.cc: $(src)/qconf.h FORCE | $(obj)/qconf-bin
+	$(call if_changed,moc)
 
-%.tab.c: %.y
-	cp $@_shipped $@ || bison -l -b $* -p $(notdir $*) $<
+targets += qconf-moc.cc
+
+# check if necessary packages are available, and configure build flags
+cmd_conf_cfg = $< $(addprefix $(obj)/$*conf-, cflags libs bin); touch $(obj)/$*conf-bin
+
+$(obj)/%conf-cflags $(obj)/%conf-libs $(obj)/%conf-bin: $(src)/%conf-cfg.sh
+	$(call cmd,conf_cfg)
+
+clean-files += *conf-cflags *conf-libs *conf-bin
+
+# ===========================================================================
+# OpenWrt rules and final adjustments that need to be made after reading the
+# full upstream Makefile
+
+FORCE:
+
+ifdef BUILD_SHIPPED_FILES
+shipped-files := lexer.lex.c parser.tab.c parser.tab.h
+clean-files += $(shipped-files)
+
+.SECONDARY: $(shipped-files)
+
+%.tab.c %.tab.h: %.y
+	bison -l -d -b $* $<
 
 %.lex.c: %.l
-	cp $@_shipped $@ || flex -L -P$(notdir $*) -o$@ $<
-
-%.hash.c: %.gperf
-	cp $@_shipped $@ || gperf < $< > $@
-
-ifeq ($(MAKECMDGOALS),qconf)
-qconf.o: .tmp_qtcheck
-.tmp_qtcheck: Makefile
--include .tmp_qtcheck
-
-# Qt needs some extra effort...
-.tmp_qtcheck:
-	@set -e; echo "  CHECK   qt"; \
-	if $(DISTRO-PKG-CONFIG) --exists Qt5Core; then \
-	    cflags="-std=c++11 -fPIC `$(DISTRO-PKG-CONFIG) --cflags Qt5Core Qt5Gui Qt5Widgets`"; \
-	    libs=`$(DISTRO-PKG-CONFIG) --libs Qt5Core Qt5Gui Qt5Widgets`; \
-	    moc=`$(DISTRO-PKG-CONFIG) --variable=host_bins Qt5Core`/moc; \
-	elif $(DISTRO-PKG-CONFIG) --exists QtCore; then \
-	    cflags=`$(DISTRO-PKG-CONFIG) --cflags QtCore QtGui`; \
-	    libs=`$(DISTRO-PKG-CONFIG) --libs QtCore QtGui`; \
-	    moc=`$(DISTRO-PKG-CONFIG) --variable=moc_location QtCore`; \
-	else \
-	    echo >&2 "*"; \
-	    echo >&2 "* Could not find Qt via $(DISTRO-PKG-CONFIG)."; \
-	    echo >&2 "* Please install either Qt 4.8 or 5.x. and make sure it's in PKG_CONFIG_PATH"; \
-	    echo >&2 "*"; \
-	    exit 1; \
-	fi; \
-	echo "KC_QT_CFLAGS=$$cflags" > $@; \
-	echo "KC_QT_LIBS=$$libs" >> $@; \
-	echo "KC_QT_MOC=$$moc" >> $@
+	flex -L -o$@ $<
 endif
 
-#Define compiler flags to build qconf
-HOSTLOADLIBES_qconf	= $(KC_QT_LIBS)
-HOSTCXXFLAGS_qconf.o	= $(KC_QT_CFLAGS)
+define link_rule
+$(1): LDLIBS+=$$(HOSTLDLIBS_$(1))
+$(1): $($(1)-objs) $$($(1)-cxxobjs)
+$(if $($(1)-cxxobjs),	$(CXX) $$(LDFLAGS) -o $$@ $$^ $$(LDLIBS))
+all-objs += $($(1)-objs)
+all-cxxobjs += $($(1)-cxxobjs)
+endef
 
-qconf.o: qconf.moc
-qconf.o: CXXFLAGS+=$(HOSTCXXFLAGS_qconf.o)
+all-objs:=
+all-cxxobjs:=
+$(foreach f,$(hostprogs),$(eval $(call link_rule,$f)))
 
-moc = $(KC_QT_MOC) -i $< -o $@
 
-%.moc: %.h .tmp_qtcheck
-	$(call moc)
+$(foreach f,$(sort $(all-objs)), \
+  $(eval $f: CFLAGS+=$$(HOSTCFLAGS_$f)))
+
+$(foreach f,$(sort $(all-cxxobjs)), \
+  $(eval $f: CXXFLAGS+=$$(HOSTCXXFLAGS_$f)))

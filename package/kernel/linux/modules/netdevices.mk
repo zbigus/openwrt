@@ -33,6 +33,33 @@ endef
 $(eval $(call KernelPackage,skge))
 
 
+define KernelPackage/ag71xx
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Atheros AR7XXX/AR9XXX ethernet mac support
+  DEPENDS:=@PCI_SUPPORT||TARGET_ath79 +kmod-phylink +kmod-mdio-devres +kmod-net-selftests
+  KCONFIG:=CONFIG_AG71XX
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/atheros/ag71xx.ko
+  AUTOLOAD:=$(call AutoLoad,50,ag71xx,1)
+endef
+
+$(eval $(call KernelPackage,ag71xx))
+
+
+define KernelPackage/ag71xx-legacy
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Downstream Atheros AR7XXX/AR9XXX ethernet mac support
+  DEPENDS:=@TARGET_ath79 +kmod-libphy +kmod-mdio-devres
+  KCONFIG:=CONFIG_AG71XX_LEGACY \
+	CONFIG_AG71XX_LEGACY_DEBUG=n \
+	CONFIG_AG71XX_LEGACY_DEBUG_FS=y
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/atheros/ag71xx/ag71xx_legacy.ko \
+	 $(LINUX_DIR)/drivers/net/ethernet/atheros/ag71xx/ag71xx_legacy_mdio.ko
+  AUTOLOAD:=$(call AutoLoad,50,ag71xx-legacy ag71xx-legacy-mdio,1)
+endef
+
+$(eval $(call KernelPackage,ag71xx-legacy))
+
+
 define KernelPackage/alx
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=Qualcomm Atheros AR816x/AR817x PCI-E Ethernet Network Driver
@@ -96,7 +123,8 @@ $(eval $(call KernelPackage,atl1e))
 define KernelPackage/libphy
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=PHY library
-  KCONFIG:=CONFIG_PHYLIB
+  KCONFIG:=CONFIG_PHYLIB \
+	   CONFIG_PHYLIB_LEDS=y
   FILES:=$(LINUX_DIR)/drivers/net/phy/libphy.ko
   AUTOLOAD:=$(call AutoLoad,15,libphy,1)
 endef
@@ -106,6 +134,23 @@ define KernelPackage/libphy/description
 endef
 
 $(eval $(call KernelPackage,libphy))
+
+
+define KernelPackage/phylink
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Model for MAC to optional PHY connection
+  DEPENDS:=+kmod-libphy
+  KCONFIG:=CONFIG_PHYLINK
+  FILES:=$(LINUX_DIR)/drivers/net/phy/phylink.ko
+  AUTOLOAD:=$(call AutoLoad,15,phylink,1)
+endef
+
+define KernelPackage/phylink/description
+ Model for MAC to optional PHY connection
+endef
+
+$(eval $(call KernelPackage,phylink))
+
 
 define KernelPackage/mii
   SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -122,16 +167,33 @@ endef
 $(eval $(call KernelPackage,mii))
 
 
+define KernelPackage/mdio-devres
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Supports MDIO device registration
+  DEPENDS:=+kmod-libphy +(TARGET_armsr||TARGET_bcm27xx_bcm2708||TARGET_loongarch64||TARGET_malta||TARGET_tegra):kmod-of-mdio
+  KCONFIG:=CONFIG_MDIO_DEVRES
+  HIDDEN:=1
+  FILES:=$(LINUX_DIR)/drivers/net/phy/mdio_devres.ko
+  AUTOLOAD:=$(call AutoProbe,mdio-devres)
+endef
+
+define KernelPackage/mdio-devres/description
+ Supports MDIO device registration
+endef
+
+$(eval $(call KernelPackage,mdio-devres))
+
+
 define KernelPackage/mdio-gpio
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:= Supports GPIO lib-based MDIO busses
-  DEPENDS:=+kmod-libphy @GPIO_SUPPORT +(TARGET_armvirt||TARGET_brcm2708_bcm2708||TARGET_samsung||TARGET_tegra):kmod-of-mdio
+  DEPENDS:=+kmod-libphy @GPIO_SUPPORT +(TARGET_armsr||TARGET_bcm27xx_bcm2708||TARGET_loongarch64||TARGET_malta||TARGET_tegra):kmod-of-mdio
   KCONFIG:= \
 	CONFIG_MDIO_BITBANG \
 	CONFIG_MDIO_GPIO
   FILES:= \
-	$(LINUX_DIR)/drivers/net/phy/mdio-gpio.ko \
-	$(LINUX_DIR)/drivers/net/phy/mdio-bitbang.ko
+	$(LINUX_DIR)/drivers/net/mdio/mdio-gpio.ko \
+	$(LINUX_DIR)/drivers/net/mdio/mdio-bitbang.ko
   AUTOLOAD:=$(call AutoProbe,mdio-gpio)
 endef
 
@@ -161,6 +223,21 @@ endef
 
 $(eval $(call KernelPackage,et131x))
 
+define KernelPackage/phy-microchip
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Microchip Ethernet PHY driver
+   KCONFIG:=CONFIG_MICROCHIP_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/microchip.ko
+   AUTOLOAD:=$(call AutoLoad,18,microchip,1)
+endef
+
+define KernelPackage/phy-microchip/description
+   Supports the LAN88XX PHYs.
+endef
+
+$(eval $(call KernelPackage,phy-microchip))
+
 
 define KernelPackage/phylib-broadcom
    SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -173,6 +250,64 @@ define KernelPackage/phylib-broadcom
 endef
 
 $(eval $(call KernelPackage,phylib-broadcom))
+
+
+define KernelPackage/phylib-qcom
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Qualcomm Ethernet PHY library
+   KCONFIG:=CONFIG_QCOM_NET_PHYLIB
+   HIDDEN:=1
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/qcom/qcom-phy-lib.ko
+   AUTOLOAD:=$(call AutoLoad,17,qcom-phy-lib)
+endef
+
+$(eval $(call KernelPackage,phylib-qcom))
+
+
+define KernelPackage/phy-amd
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=AMD PHY driver
+   KCONFIG:=CONFIG_AMD_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/amd.ko
+   AUTOLOAD:=$(call AutoProbe,amd,1)
+endef
+
+define KernelPackage/phy-amd/description
+   Currently supports the AMD and Altima PHYs.
+endef
+
+$(eval $(call KernelPackage,phy-amd))
+
+
+define KernelPackage/phy-at803x
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Qualcomm Atheros 8337 internal PHY
+   KCONFIG:=CONFIG_AT803X_PHY
+   DEPENDS:=+kmod-phylib-qcom
+   FILES:=$(LINUX_DIR)/drivers/net/phy/qcom/at803x.ko
+   AUTOLOAD:=$(call AutoLoad,18,at803x,1)
+endef
+
+$(eval $(call KernelPackage,phy-at803x))
+
+
+define KernelPackage/phy-ax88796b
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Asix PHY driver
+   KCONFIG:=CONFIG_AX88796B_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/ax88796b.ko
+   AUTOLOAD:=$(call AutoProbe,ax88796b)
+endef
+
+define KernelPackage/phy-ax88796b/description
+   Currently supports the Asix Electronics PHY found in the X-Surf 100
+   AX88796B package.
+endef
+
+$(eval $(call KernelPackage,phy-ax88796b))
 
 
 define KernelPackage/phy-broadcom
@@ -208,6 +343,106 @@ endef
 $(eval $(call KernelPackage,phy-bcm84881))
 
 
+define KernelPackage/phy-intel-xway
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Intel XWAY PHYs
+   KCONFIG:=CONFIG_INTEL_XWAY_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/intel-xway.ko
+   AUTOLOAD:=$(call AutoLoad,18,intel-xway,1)
+endef
+
+define KernelPackage/phy-intel-xway/description
+   Supports the Intel XWAY (former Lantiq) 11G and 22E PHYs.
+   These PHYs are marked as standalone chips under the names
+   PEF 7061, PEF 7071 and PEF 7072 or integrated into the Intel
+   SoCs xRX200, xRX300, xRX330, xRX350 and xRX550.
+endef
+
+$(eval $(call KernelPackage,phy-intel-xway))
+
+
+define KernelPackage/phy-qca83xx
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Qualcomm Atheros QCA833x PHY driver
+   KCONFIG:=CONFIG_QCA83XX_PHY
+   DEPENDS:=+kmod-phylib-qcom
+   FILES:=$(LINUX_DIR)/drivers/net/phy/qcom/qca83xx.ko
+   AUTOLOAD:=$(call AutoLoad,18,qca83xx,1)
+endef
+
+$(eval $(call KernelPackage,phy-qca83xx))
+
+
+define KernelPackage/phy-marvell
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Marvell Gigabit Ethernet PHY driver
+   KCONFIG:=CONFIG_MARVELL_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/marvell.ko
+   AUTOLOAD:=$(call AutoLoad,18,marvell)
+endef
+
+define KernelPackage/phy-marvell/description
+   Supports Marvell Gigabit Ethernet PHYs:
+   * 88E1101
+   * 88E1112
+   * 88E1111 (incl. Finisar variant)
+   * 88E1118
+   * 88E1121R
+   * 88E1145
+   * 88E1149R
+   * 88E1240
+   * 88E1318S
+   * 88E1116R
+   * 88E1510
+   * 88E1540
+   * 88E1545
+   * 88E3016
+   * 88E6341 family
+   * 88E6390 family
+   * 88E6393 family
+   * 88E1340S
+   * 88E1548P
+endef
+
+$(eval $(call KernelPackage,phy-marvell))
+
+define KernelPackage/phy-marvell-10g
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Marvell 10 Gigabit Ethernet PHY driver
+   KCONFIG:=CONFIG_MARVELL_10G_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/marvell10g.ko
+   AUTOLOAD:=$(call AutoLoad,18,marvell10g)
+endef
+
+define KernelPackage/phy-marvell/description
+   Supports Marvell 10 Gigabit Ethernet PHYs:
+   * 88E2110
+   * 88E2111
+   * 88x3310
+   * 88x3340
+endef
+
+$(eval $(call KernelPackage,phy-marvell-10g))
+
+
+define KernelPackage/phy-micrel
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Micrel PHYs
+   KCONFIG:=CONFIG_MICREL_PHY
+   DEPENDS:=+kmod-libphy +kmod-ptp
+   FILES:=$(LINUX_DIR)/drivers/net/phy/micrel.ko
+   AUTOLOAD:=$(call AutoLoad,18,micrel,1)
+endef
+
+define KernelPackage/phy-micrel/description
+   Supports the KSZ9021, VSC8201, KS8001 PHYs.
+endef
+
+$(eval $(call KernelPackage,phy-micrel))
+
 
 define KernelPackage/phy-realtek
    SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -225,11 +460,143 @@ endef
 $(eval $(call KernelPackage,phy-realtek))
 
 
+define KernelPackage/phy-smsc
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=SMSC PHY driver
+   KCONFIG:=CONFIG_SMSC_PHY
+   DEPENDS:=+kmod-libphy +kmod-lib-crc16
+   FILES:=$(LINUX_DIR)/drivers/net/phy/smsc.ko
+   AUTOLOAD:=$(call AutoProbe,smsc)
+endef
+
+define KernelPackage/phy-smsc/description
+   Currently supports the LAN83C185, LAN8187 and LAN8700 PHYs
+endef
+
+$(eval $(call KernelPackage,phy-smsc))
+
+
+define KernelPackage/phy-vitesse
+   SUBMENU:=$(NETWORK_DEVICES_MENU)
+   TITLE:=Vitesse PHYs
+   KCONFIG:=CONFIG_VITESSE_PHY
+   DEPENDS:=+kmod-libphy
+   FILES:=$(LINUX_DIR)/drivers/net/phy/vitesse.ko
+   AUTOLOAD:=$(call AutoLoad,18,vitesse,1)
+endef
+
+define KernelPackage/phy-vitesse/description
+   Currently supports the vsc8244
+endef
+
+$(eval $(call KernelPackage,phy-vitesse))
+
+
+define KernelPackage/phy-airoha-en8811h
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Airoha EN8811H 2.5G Ethernet PHY
+  DEPENDS:=+airoha-en8811h-firmware +kmod-libphy
+  KCONFIG:=CONFIG_AIR_EN8811H_PHY
+  FILES:= \
+   $(LINUX_DIR)/drivers/net/phy/air_en8811h.ko
+  AUTOLOAD:=$(call AutoLoad,18,air_en8811h,1)
+endef
+
+define KernelPackage/phy-airoha-en8811h/description
+  Kernel modules for Airoha EN8811H 2.5G Ethernet PHY
+endef
+
+$(eval $(call KernelPackage,phy-airoha-en8811h))
+
+
+define KernelPackage/phy-aquantia
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Aquantia Ethernet PHYs
+  DEPENDS:=+kmod-libphy +kmod-hwmon-core +kmod-lib-crc-ccitt
+  KCONFIG:=CONFIG_AQUANTIA_PHY
+  FILES:=$(LINUX_DIR)/drivers/net/phy/aquantia/aquantia.ko
+  AUTOLOAD:=$(call AutoLoad,18,aquantia,1)
+endef
+
+define KernelPackage/phy-aquantia/description
+  Kernel modules for Aquantia Ethernet PHYs
+endef
+
+$(eval $(call KernelPackage,phy-aquantia))
+
+define KernelPackage/dsa
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Distributed Switch Architecture support
+  DEPENDS:=+kmod-mdio-devres +kmod-net-selftests +kmod-phylink
+  KCONFIG:=CONFIG_NET_DSA
+  FILES:=$(LINUX_DIR)/net/dsa/dsa_core.ko
+endef
+
+define KernelPackage/dsa/description
+  Kernel module support for Distributed Switch Architecture
+endef
+
+$(eval $(call KernelPackage,dsa))
+
+define KernelPackage/dsa-tag-dsa
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Marvell DSA type DSA and EDSA taggers
+  DEPENDS:=+kmod-dsa
+  KCONFIG:= CONFIG_NET_DSA_TAG_DSA_COMMON \
+	CONFIG_NET_DSA_TAG_DSA \
+	CONFIG_NET_DSA_TAG_EDSA
+  FILES:=$(LINUX_DIR)/net/dsa/tag_dsa.ko
+  AUTOLOAD:=$(call AutoLoad,40,tag_dsa,1)
+endef
+
+define KernelPackage/dsa-tag-dsa/description
+  Kernel modules for Marvell DSA and EDSA tagging
+endef
+
+$(eval $(call KernelPackage,dsa-tag-dsa))
+
+define KernelPackage/dsa-mv88e6xxx
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Marvell MV88E6XXX DSA Switch
+  DEPENDS:=+kmod-dsa +kmod-ptp +kmod-phy-marvell +kmod-dsa-tag-dsa
+  KCONFIG:=CONFIG_NET_DSA_MV88E6XXX \
+	CONFIG_NET_DSA_MV88E6XXX_PTP=y
+  FILES:=$(LINUX_DIR)/drivers/net/dsa/mv88e6xxx/mv88e6xxx.ko
+  AUTOLOAD:=$(call AutoLoad,41,mv88e6xxx,1)
+endef
+
+define KernelPackage/dsa-mv88e6xxx/description
+  Kernel modules for MV88E6XXX DSA switches
+endef
+
+$(eval $(call KernelPackage,dsa-mv88e6xxx))
+
+define KernelPackage/dsa-qca8k
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Qualcomm Atheros QCA8xxx switch family DSA support
+  DEPENDS:=+kmod-dsa +kmod-regmap-core
+  KCONFIG:= \
+	CONFIG_NET_DSA_QCA8K \
+	CONFIG_NET_DSA_QCA8K_LEDS_SUPPORT=y \
+	CONFIG_NET_DSA_TAG_QCA
+  FILES:= \
+	$(LINUX_DIR)/drivers/net/dsa/qca/qca8k.ko \
+	$(LINUX_DIR)/net/dsa/tag_qca.ko
+  AUTOLOAD:=$(call AutoLoad,42,qca8k,1)
+endef
+
+define KernelPackage/dsa-qca8k/description
+  DSA based kernel modules for the Qualcomm Atheros QCA8xxx switch family
+endef
+
+$(eval $(call KernelPackage,dsa-qca8k))
+
 define KernelPackage/swconfig
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=switch configuration API
   DEPENDS:=+kmod-libphy
-  KCONFIG:=CONFIG_SWCONFIG
+  KCONFIG:=CONFIG_SWCONFIG \
+	   CONFIG_SWCONFIG_LEDS=y
   FILES:=$(LINUX_DIR)/drivers/net/phy/swconfig.ko
   AUTOLOAD:=$(call AutoLoad,41,swconfig)
 endef
@@ -270,20 +637,6 @@ endef
 
 $(eval $(call KernelPackage,switch-bcm53xx-mdio))
 
-define KernelPackage/switch-mvsw61xx
-  SUBMENU:=$(NETWORK_DEVICES_MENU)
-  TITLE:=Marvell 88E61xx switch support
-  DEPENDS:=+kmod-swconfig
-  KCONFIG:=CONFIG_MVSW61XX_PHY
-  FILES:=$(LINUX_DIR)/drivers/net/phy/mvsw61xx.ko
-  AUTOLOAD:=$(call AutoLoad,42,mvsw61xx)
-endef
-
-define KernelPackage/switch-mvsw61xx/description
- Marvell 88E61xx switch support
-endef
-
-$(eval $(call KernelPackage,switch-mvsw61xx))
 
 define KernelPackage/switch-ip17xx
   SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -320,13 +673,13 @@ $(eval $(call KernelPackage,switch-rtl8306))
 define KernelPackage/switch-rtl8366-smi
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=Realtek RTL8366 SMI switch interface support
-  DEPENDS:=@GPIO_SUPPORT +kmod-swconfig +(TARGET_armvirt||TARGET_brcm2708_bcm2708||TARGET_samsung||TARGET_tegra):kmod-of-mdio
+  DEPENDS:=@GPIO_SUPPORT +kmod-swconfig +(TARGET_armsr||TARGET_bcm27xx_bcm2708||TARGET_loongarch64||TARGET_malta||TARGET_tegra):kmod-of-mdio
   KCONFIG:=CONFIG_RTL8366_SMI
   FILES:=$(LINUX_DIR)/drivers/net/phy/rtl8366_smi.ko
-  AUTOLOAD:=$(call AutoLoad,42,rtl8366_smi)
+  AUTOLOAD:=$(call AutoLoad,42,rtl8366_smi,1)
 endef
 
-define KernelPackage/switch-rtl8366_smi/description
+define KernelPackage/switch-rtl8366-smi/description
   Realtek RTL8366 series SMI switch interface support
 endef
 
@@ -339,7 +692,7 @@ define KernelPackage/switch-rtl8366rb
   DEPENDS:=+kmod-switch-rtl8366-smi
   KCONFIG:=CONFIG_RTL8366RB_PHY
   FILES:=$(LINUX_DIR)/drivers/net/phy/rtl8366rb.ko
-  AUTOLOAD:=$(call AutoLoad,43,rtl8366rb)
+  AUTOLOAD:=$(call AutoLoad,43,rtl8366rb,1)
 endef
 
 define KernelPackage/switch-rtl8366rb/description
@@ -355,7 +708,7 @@ define KernelPackage/switch-rtl8366s
   DEPENDS:=+kmod-switch-rtl8366-smi
   KCONFIG:=CONFIG_RTL8366S_PHY
   FILES:=$(LINUX_DIR)/drivers/net/phy/rtl8366s.ko
-  AUTOLOAD:=$(call AutoLoad,43,rtl8366s)
+  AUTOLOAD:=$(call AutoLoad,43,rtl8366s,1)
 endef
 
 define KernelPackage/switch-rtl8366s/description
@@ -365,13 +718,29 @@ endef
 $(eval $(call KernelPackage,switch-rtl8366s))
 
 
+define KernelPackage/switch-rtl8367
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Realtek RTL8367 switch support
+  DEPENDS:=+kmod-switch-rtl8366-smi
+  KCONFIG:=CONFIG_RTL8367_PHY
+  FILES:=$(LINUX_DIR)/drivers/net/phy/rtl8367.ko
+  AUTOLOAD:=$(call AutoLoad,43,rtl8367,1)
+endef
+
+define KernelPackage/switch-rtl8367/description
+ Realtek RTL8367 switch support
+endef
+
+$(eval $(call KernelPackage,switch-rtl8367))
+
+
 define KernelPackage/switch-rtl8367b
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=Realtek RTL8367R/B switch support
   DEPENDS:=+kmod-switch-rtl8366-smi
   KCONFIG:=CONFIG_RTL8367B_PHY
   FILES:=$(LINUX_DIR)/drivers/net/phy/rtl8367b.ko
-  AUTOLOAD:=$(call AutoLoad,43,rtl8367b)
+  AUTOLOAD:=$(call AutoLoad,43,rtl8367b,1)
 endef
 
 define KernelPackage/switch-rtl8367b/description
@@ -379,6 +748,23 @@ define KernelPackage/switch-rtl8367b/description
 endef
 
 $(eval $(call KernelPackage,switch-rtl8367b))
+
+
+define KernelPackage/switch-ar8xxx
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Atheros AR8216/8327 switch support
+  DEPENDS:=+kmod-swconfig +kmod-mdio-devres
+  KCONFIG:=CONFIG_AR8216_PHY \
+	   CONFIG_AR8216_PHY_LEDS=y
+  FILES:=$(LINUX_DIR)/drivers/net/phy/ar8xxx.ko
+  AUTOLOAD:=$(call AutoLoad,43,ar8xxx,1)
+endef
+
+define KernelPackage/switch-ar8xxx/description
+ Atheros AR8216/8327 switch support
+endef
+
+$(eval $(call KernelPackage,switch-ar8xxx))
 
 
 define KernelPackage/natsemi
@@ -413,6 +799,23 @@ define KernelPackage/r6040/description
 endef
 
 $(eval $(call KernelPackage,r6040))
+
+
+define KernelPackage/rmnet
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=RmNet MAP support
+  KCONFIG:=CONFIG_RMNET
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/qualcomm/rmnet/rmnet.ko
+  AUTOLOAD:=$(call AutoLoad,30,rmnet)
+endef
+
+define KernelPackage/rmnet/description
+  Kernel support for RMNET module which is used for handling data in the
+  multiplexing and aggregation protocol (MAP) format in the embedded data
+  path. RMNET devices can be attached to any IP mode physical device.
+endef
+
+$(eval $(call KernelPackage,rmnet))
 
 
 define KernelPackage/niu
@@ -541,10 +944,10 @@ $(eval $(call KernelPackage,8139cp))
 define KernelPackage/r8169
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=RealTek RTL-8169 PCI Gigabit Ethernet Adapter kernel support
-  DEPENDS:=@PCI_SUPPORT +kmod-mii +r8169-firmware +LINUX_4_19:kmod-phy-realtek
-  KCONFIG:=CONFIG_R8169 \
-    CONFIG_R8169_NAPI=y \
-    CONFIG_R8169_VLAN=n
+  DEPENDS:=@PCI_SUPPORT +kmod-mii +r8169-firmware +kmod-phy-realtek +kmod-mdio-devres
+  KCONFIG:= \
+    CONFIG_R8169 \
+    CONFIG_R8169_LEDS=y
   FILES:=$(LINUX_DIR)/drivers/net/ethernet/realtek/r8169.ko
   AUTOLOAD:=$(call AutoProbe,r8169)
 endef
@@ -635,7 +1038,7 @@ define KernelPackage/igb
     CONFIG_IGB_HWMON=y \
     CONFIG_IGB_DCA=n
   FILES:=$(LINUX_DIR)/drivers/net/ethernet/intel/igb/igb.ko
-  AUTOLOAD:=$(call AutoLoad,35,igb)
+  AUTOLOAD:=$(call AutoLoad,35,igb,1)
 endef
 
 define KernelPackage/igb/description
@@ -666,7 +1069,7 @@ $(eval $(call KernelPackage,igbvf))
 define KernelPackage/ixgbe
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=Intel(R) 82598/82599 PCI-Express 10 Gigabit Ethernet support
-  DEPENDS:=@PCI_SUPPORT +kmod-mdio +kmod-ptp +kmod-hwmon-core
+  DEPENDS:=@PCI_SUPPORT +kmod-mdio +kmod-ptp +kmod-hwmon-core +kmod-libphy +kmod-mdio-devres
   KCONFIG:=CONFIG_IXGBE \
     CONFIG_IXGBE_VXLAN=n \
     CONFIG_IXGBE_HWMON=y \
@@ -701,10 +1104,51 @@ endef
 $(eval $(call KernelPackage,ixgbevf))
 
 
+define KernelPackage/i40e
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Intel(R) Ethernet Controller XL710 Family support
+  DEPENDS:=@PCI_SUPPORT +kmod-mdio +kmod-ptp +kmod-hwmon-core +kmod-libphy
+  KCONFIG:=CONFIG_I40E \
+    CONFIG_I40E_VXLAN=n \
+    CONFIG_I40E_HWMON=y \
+    CONFIG_I40E_DCA=n
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/intel/i40e/i40e.ko
+  AUTOLOAD:=$(call AutoProbe,i40e)
+endef
+
+define KernelPackage/i40e/description
+ Kernel modules for Intel(R) Ethernet Controller XL710 Family 40 Gigabit Ethernet adapters.
+endef
+
+$(eval $(call KernelPackage,i40e))
+
+
+define KernelPackage/iavf
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Intel(R) Ethernet Adaptive Virtual Function support
+  DEPENDS:=@PCI_SUPPORT
+  KCONFIG:= \
+       CONFIG_I40EVF \
+       CONFIG_IAVF
+  FILES:= \
+       $(LINUX_DIR)/drivers/net/ethernet/intel/iavf/iavf.ko
+  AUTOLOAD:=$(call AutoProbe,i40evf iavf)
+  AUTOLOAD:=$(call AutoProbe,iavf)
+endef
+
+define KernelPackage/iavf/description
+ Kernel modules for Intel XL710,
+	  X710, X722, XXV710, and all devices advertising support for
+	  Intel Ethernet Adaptive Virtual Function devices.
+endef
+
+$(eval $(call KernelPackage,iavf))
+
+
 define KernelPackage/b44
   TITLE:=Broadcom 44xx driver
   KCONFIG:=CONFIG_B44
-  DEPENDS:=@PCI_SUPPORT @!TARGET_brcm47xx_mips74k +!TARGET_brcm47xx:kmod-ssb +kmod-mii +kmod-libphy
+  DEPENDS:=@PCI_SUPPORT @!TARGET_bcm47xx_mips74k +!TARGET_bcm47xx:kmod-ssb +kmod-mii +kmod-libphy
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   FILES:=$(LINUX_DIR)/drivers/net/ethernet/broadcom/b44.ko
   AUTOLOAD:=$(call AutoLoad,19,b44,1)
@@ -759,7 +1203,7 @@ define KernelPackage/tg3
   TITLE:=Broadcom Tigon3 Gigabit Ethernet
   KCONFIG:=CONFIG_TIGON3 \
 	CONFIG_TIGON3_HWMON=n
-  DEPENDS:=+!TARGET_brcm47xx:kmod-libphy +kmod-ptp
+  DEPENDS:=@PCI_SUPPORT +!TARGET_bcm47xx:kmod-libphy +kmod-ptp
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   FILES:=$(LINUX_DIR)/drivers/net/ethernet/broadcom/tg3.ko
   AUTOLOAD:=$(call AutoLoad,19,tg3,1)
@@ -775,7 +1219,7 @@ $(eval $(call KernelPackage,tg3))
 define KernelPackage/hfcpci
   TITLE:=HFC PCI cards (single port) support for mISDN
   KCONFIG:=CONFIG_MISDN_HFCPCI
-  DEPENDS:=+kmod-misdn
+  DEPENDS:=@PCI_SUPPORT +kmod-misdn
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   FILES:=$(LINUX_DIR)/drivers/isdn/hardware/mISDN/hfcpci.ko
   AUTOLOAD:=$(call AutoLoad,31,hfcpci)
@@ -792,7 +1236,7 @@ $(eval $(call KernelPackage,hfcpci))
 define KernelPackage/hfcmulti
   TITLE:=HFC multiport cards (HFC-4S/8S/E1) support for mISDN
   KCONFIG:=CONFIG_MISDN_HFCMULTI
-  DEPENDS:=+kmod-misdn
+  DEPENDS:=@PCI_SUPPORT +kmod-misdn
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   FILES:=$(LINUX_DIR)/drivers/isdn/hardware/mISDN/hfcmulti.ko
   AUTOLOAD:=$(call AutoLoad,31,hfcmulti)
@@ -804,36 +1248,6 @@ define KernelPackage/hfcmulti/description
 endef
 
 $(eval $(call KernelPackage,hfcmulti))
-
-
-define KernelPackage/gigaset
-  SUBMENU:=$(NETWORK_DEVICES_MENU)
-  TITLE:=Siemens Gigaset support for isdn4linux
-  DEPENDS:=@USB_SUPPORT +kmod-isdn4linux +kmod-lib-crc-ccitt +kmod-usb-core
-  URL:=http://gigaset307x.sourceforge.net/
-  KCONFIG:= \
-    CONFIG_ISDN_DRV_GIGASET \
-    CONFIG_GIGASET_BASE \
-    CONFIG_GIGASET_M101 \
-    CONFIG_GIGASET_M105 \
-    CONFIG_GIGASET_UNDOCREQ=y \
-    CONFIG_GIGASET_I4L=y
-  FILES:= \
-    $(LINUX_DIR)/drivers/isdn/gigaset/gigaset.ko \
-    $(LINUX_DIR)/drivers/isdn/gigaset/bas_gigaset.ko \
-    $(LINUX_DIR)/drivers/isdn/gigaset/ser_gigaset.ko \
-    $(LINUX_DIR)/drivers/isdn/gigaset/usb_gigaset.ko
-  AUTOLOAD:=$(call AutoProbe,gigaset bas_gigaset ser_gigaset usb_gigaset)
-endef
-
-define KernelPackage/gigaset/description
- This driver supports the Siemens Gigaset SX205/255 family of
- ISDN DECT bases, including the predecessors Gigaset 3070/3075
- and 4170/4175 and their T-Com versions Sinus 45isdn and Sinus
- 721X.
-endef
-
-$(eval $(call KernelPackage,gigaset))
 
 
 define KernelPackage/macvlan
@@ -850,6 +1264,22 @@ define KernelPackage/macvlan/description
 endef
 
 $(eval $(call KernelPackage,macvlan))
+
+
+define KernelPackage/ipvlan
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=IP-VLAN support
+  KCONFIG:=CONFIG_IPVLAN
+  FILES:=$(LINUX_DIR)/drivers/net/ipvlan/ipvlan.ko
+  AUTOLOAD:=$(call AutoProbe,ipvlan)
+endef
+
+define KernelPackage/ipvlan/description
+ A kernel module which allows one to create virtual interfaces that
+ map packets to or from specific IP addresses to a particular interface
+endef
+
+$(eval $(call KernelPackage,ipvlan))
 
 
 define KernelPackage/tulip
@@ -927,6 +1357,7 @@ define KernelPackage/ifb
 	CONFIG_NET_CLS=y
   FILES:=$(LINUX_DIR)/drivers/net/ifb.ko
   AUTOLOAD:=$(call AutoLoad,34,ifb)
+  MODPARAMS.ifb:=numifbs=0
 endef
 
 define KernelPackage/ifb/description
@@ -969,14 +1400,30 @@ endef
 
 $(eval $(call KernelPackage,forcedeth))
 
+define KernelPackage/fixed-phy
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MDIO Bus/PHY emulation with fixed speed/link PHYs
+  DEPENDS:=+kmod-libphy
+  KCONFIG:=CONFIG_FIXED_PHY
+  FILES:=$(LINUX_DIR)/drivers/net/phy/fixed_phy.ko
+  AUTOLOAD:=$(call AutoProbe,fixed_phy)
+endef
+
+define KernelPackage/fixed-phy/description
+ Kernel driver for "fixed" MDIO Bus to cover the boards
+ and devices that use PHYs that are not connected to the real MDIO bus.
+endef
+
+$(eval $(call KernelPackage,fixed-phy))
+
 define KernelPackage/of-mdio
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=OpenFirmware MDIO support
-  DEPENDS:=+kmod-libphy
+  DEPENDS:=+kmod-libphy +kmod-fixed-phy @!TARGET_x86
   KCONFIG:=CONFIG_OF_MDIO
   FILES:= \
-	$(LINUX_DIR)/drivers/net/phy/fixed_phy.ko \
-	$(LINUX_DIR)/drivers/of/of_mdio.ko
+	$(LINUX_DIR)/drivers/net/mdio/of_mdio.ko \
+	$(LINUX_DIR)/drivers/net/mdio/fwnode_mdio.ko
   AUTOLOAD:=$(call AutoLoad,41,of_mdio)
 endef
 
@@ -1089,3 +1536,431 @@ define KernelPackage/be2net/description
 endef
 
 $(eval $(call KernelPackage,be2net))
+
+define KernelPackage/mlx4-core
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox ConnectX(R) mlx4 core Network Driver
+  DEPENDS:=@PCI_SUPPORT +kmod-ptp
+  FILES:= \
+	$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlx4/mlx4_core.ko \
+	$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko
+  KCONFIG:= CONFIG_MLX4_EN \
+	CONFIG_MLX4_EN_DCB=n \
+	CONFIG_MLX4_CORE=y \
+	CONFIG_MLX4_CORE_GEN2=y \
+	CONFIG_MLX4_DEBUG=n
+  AUTOLOAD:=$(call AutoProbe,mlx4_core mlx4_en)
+endef
+
+define KernelPackage/mlx4-core/description
+  Supports Mellanox ConnectX-3 series and previous cards
+endef
+
+$(eval $(call KernelPackage,mlx4-core))
+
+define KernelPackage/mlx5-core
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox ConnectX(R) mlx5 core Network Driver
+  DEPENDS:=@PCI_SUPPORT +kmod-ptp +kmod-mlxfw +kmod-hwmon-core
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlx5/core/mlx5_core.ko
+  KCONFIG:= CONFIG_MLX5_CORE \
+	CONFIG_MLX5_CORE_EN=y \
+	CONFIG_MLX5_CORE_EN_DCB=n \
+	CONFIG_MLX5_CORE_IPOIB=n \
+	CONFIG_MLX5_EN_ARFS=n \
+	CONFIG_MLX5_EN_IPSEC=n \
+	CONFIG_MLX5_EN_RXNFC=y \
+	CONFIG_MLX5_EN_TLS=n \
+	CONFIG_MLX5_ESWITCH=n \
+	CONFIG_MLX5_FPGA=n \
+	CONFIG_MLX5_FPGA_IPSEC=n \
+	CONFIG_MLX5_FPGA_TLS=n \
+	CONFIG_MLX5_MPFS=y \
+	CONFIG_MLX5_SW_STEERING=n \
+	CONFIG_MLX5_TC_CT=n \
+	CONFIG_MLX5_TLS=n \
+	CONFIG_MLX5_VFIO_PCI=n
+  AUTOLOAD:=$(call AutoProbe,mlx5_core)
+endef
+
+define KernelPackage/mlx5-core/description
+  Supports Mellanox Connect-IB/ConnectX-4 series and later cards
+endef
+
+$(eval $(call KernelPackage,mlx5-core))
+
+
+define KernelPackage/mlxfw
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox Technologies firmware flash module
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxfw/mlxfw.ko
+  KCONFIG:=CONFIG_MLXFW
+  AUTOLOAD:=$(call AutoProbe,mlxfw)
+endef
+
+define KernelPackage/mlxfw/description
+  This driver supports Mellanox Technologies Firmware
+  flashing common logic.
+endef
+
+$(eval $(call KernelPackage,mlxfw))
+
+
+define KernelPackage/mlxsw-core
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox Technologies Switch ASICs support
+  DEPENDS:=@TARGET_x86_64 +kmod-mlxfw +kmod-hwmon-core
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxsw/mlxsw_core.ko
+  KCONFIG:= \
+  CONFIG_MLXSW_CORE \
+  CONFIG_MLXSW_CORE_HWMON=y \
+  CONFIG_MLXSW_CORE_THERMAL=y
+  AUTOLOAD:=$(call AutoProbe,mlxsw_core)
+endef
+
+define KernelPackage/mlxsw-core/description
+  This driver supports Mellanox Technologies Switch ASICs family.
+endef
+
+$(eval $(call KernelPackage,mlxsw-core))
+
+
+define KernelPackage/mlxsw-i2c
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=I2C bus implementation for Mellanox Technologies Switch ASICs
+  DEPENDS:=+kmod-mlxsw-core +kmod-i2c-core
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxsw/mlxsw_i2c.ko
+  KCONFIG:=CONFIG_MLXSW_I2C
+  AUTOLOAD:=$(call AutoProbe,mlxsw_i2c)
+endef
+
+define KernelPackage/mlxsw-i2c/description
+  This is I2C bus implementation for Mellanox Technologies Switch ASICs.
+endef
+
+$(eval $(call KernelPackage,mlxsw-i2c))
+
+
+define KernelPackage/mlxsw-minimal
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox Technologies minimal I2C support
+  DEPENDS:=+kmod-mlxsw-i2c
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxsw/mlxsw_minimal.ko
+  KCONFIG:=CONFIG_MLXSW_MINIMAL
+  AUTOLOAD:=$(call AutoProbe,mlxsw_minimal)
+endef
+
+define KernelPackage/mlxsw-minimal/description
+  This driver supports I2C access for Mellanox Technologies Switch
+  ASICs.
+endef
+
+$(eval $(call KernelPackage,mlxsw-minimal))
+
+
+define KernelPackage/mlxsw-pci
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=PCI bus implementation for Mellanox Technologies Switch ASICs
+  DEPENDS:=@PCI_SUPPORT +kmod-mlxsw-core
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxsw/mlxsw_pci.ko
+  KCONFIG:=CONFIG_MLXSW_PCI
+  AUTOLOAD:=$(call AutoProbe,mlxsw_pci)
+endef
+
+define KernelPackage/mlxsw-pci/description
+  This is PCI bus implementation for Mellanox Technologies Switch ASICs.
+endef
+
+$(eval $(call KernelPackage,mlxsw-pci))
+
+
+define KernelPackage/mlxsw-spectrum
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Mellanox Technologies Spectrum family support
+  DEPENDS:= \
+  +kmod-mlxsw-pci +kmod-lib-objagg +kmod-lib-parman \
+  +kmod-ip6-tunnel +kmod-ptp +kmod-sched-act-sample +kmod-vxlan
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/mellanox/mlxsw/mlxsw_spectrum.ko
+  KCONFIG:= \
+  CONFIG_MLXSW_SPECTRUM \
+  CONFIG_MLXSW_SPECTRUM_DCB=y \
+  CONFIG_NET_SWITCHDEV=y \
+  CONFIG_DCB=y
+  AUTOLOAD:=$(call AutoProbe,mlxsw_spectrum)
+endef
+
+define KernelPackage/mlxsw-spectrum/description
+  This driver supports Mellanox Technologies
+  Spectrum/Spectrum-2/Spectrum-3/Spectrum-4 Ethernet Switch ASICs.
+endef
+
+$(eval $(call KernelPackage,mlxsw-spectrum))
+
+
+define KernelPackage/net-selftests
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  DEPENDS:=+kmod-libphy
+  TITLE:=Network generic selftest support
+  KCONFIG:=CONFIG_NET_SELFTESTS
+  FILES:=$(LINUX_DIR)/net/core/selftests.ko
+  AUTOLOAD:=$(call AutoLoad,99,selftests)
+endef
+
+define KernelPackage/net-selftests/description
+  Kernel modules for the generic selftest support
+endef
+
+$(eval $(call KernelPackage,net-selftests))
+
+
+define KernelPackage/qlcnic
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  DEPENDS:=@PCI_SUPPORT +kmod-hwmon-core
+  TITLE:=QLogic QLE8240 and QLE8242 device support
+  KCONFIG:= \
+	CONFIG_QLCNIC \
+	CONFIG_QLCNIC_HWMON=y \
+	CONFIG_QLCNIC_SRIOV=y
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/qlogic/qlcnic/qlcnic.ko
+  AUTOLOAD:=$(call AutoProbe,qlcnic)
+endef
+
+define KernelPackage/qlcnic/description
+  This driver supports QLogic QLE8240 and QLE8242 Converged Ethernet
+  devices.
+endef
+
+$(eval $(call KernelPackage,qlcnic))
+
+
+define KernelPackage/sfp
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=SFP cage support
+  DEPENDS:=+kmod-i2c-core +kmod-hwmon-core +kmod-phylink
+  KCONFIG:= \
+	CONFIG_SFP \
+	CONFIG_MDIO_I2C
+  FILES:= \
+	$(LINUX_DIR)/drivers/net/phy/sfp.ko \
+	$(LINUX_DIR)/drivers/net/mdio/mdio-i2c.ko
+  AUTOLOAD:=$(call AutoProbe,mdio-i2c sfp)
+endef
+
+define KernelPackage/sfp/description
+ Kernel module to support SFP cages
+endef
+
+$(eval $(call KernelPackage,sfp))
+
+
+define KernelPackage/pcs-xpcs
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Synopsis DesignWare PCS driver
+  DEPENDS:=@(TARGET_x86_64||TARGET_armsr_armv8) +kmod-phylink
+  KCONFIG:=CONFIG_PCS_XPCS
+  FILES:=$(LINUX_DIR)/drivers/net/pcs/pcs_xpcs.ko
+  AUTOLOAD:=$(call AutoLoad,20,pcs_xpcs)
+endef
+
+$(eval $(call KernelPackage,pcs-xpcs))
+
+
+define KernelPackage/stmmac-core
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Synopsis Ethernet Controller core (NXP,STMMicro,others)
+  DEPENDS:=@TARGET_x86_64||TARGET_armsr_armv8 +kmod-pcs-xpcs +kmod-ptp
+  KCONFIG:=CONFIG_STMMAC_ETH \
+    CONFIG_STMMAC_SELFTESTS=n \
+    CONFIG_STMMAC_PLATFORM \
+    CONFIG_CONFIG_DWMAC_DWC_QOS_ETH=n \
+    CONFIG_DWMAC_GENERIC
+  FILES=$(LINUX_DIR)/drivers/net/ethernet/stmicro/stmmac/stmmac.ko \
+    $(LINUX_DIR)/drivers/net/ethernet/stmicro/stmmac/stmmac-platform.ko \
+    $(LINUX_DIR)/drivers/net/ethernet/stmicro/stmmac/dwmac-generic.ko
+  AUTOLOAD=$(call AutoLoad,40,stmmac stmmac-platform dwmac-generic)
+endef
+
+$(eval $(call KernelPackage,stmmac-core))
+
+
+define KernelPackage/igc
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Intel(R) Ethernet Controller I225 Series support
+  DEPENDS:=@PCI_SUPPORT +kmod-ptp
+  KCONFIG:=CONFIG_IGC
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/intel/igc/igc.ko
+  AUTOLOAD:=$(call AutoProbe,igc)
+endef
+
+define KernelPackage/igc/description
+  Kernel modules for Intel(R) Ethernet Controller I225 Series
+endef
+
+$(eval $(call KernelPackage,igc))
+
+define KernelPackage/sfc
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Solarflare SFC9000/SFC9100/EF100-family support
+  DEPENDS:=@PCI_SUPPORT +kmod-mdio +kmod-lib-crc32c +kmod-ptp +kmod-hwmon-core
+  KCONFIG:= \
+	CONFIG_SFC \
+	CONFIG_SFC_MTD=y \
+	CONFIG_SFC_MCDI_MON=y \
+	CONFIG_SFC_MCDI_LOGGING=y \
+	CONFIG_SFC_SRIOV=y
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/sfc/sfc.ko
+  AUTOLOAD:=$(call AutoProbe,sfc)
+endef
+
+define KernelPackage/sfc/description
+  Solarflare SFC9000/SFC9100/EF100-family support
+  Solarflare EF100 support requires at least kernel version 5.9
+endef
+
+$(eval $(call KernelPackage,sfc))
+
+define KernelPackage/sfc-falcon
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Solarflare SFC4000 support
+  DEPENDS:=@PCI_SUPPORT +kmod-mdio +kmod-lib-crc32c +kmod-i2c-algo-bit
+  KCONFIG:= \
+	CONFIG_SFC_FALCON \
+	CONFIG_SFC_FALCON_MTD=y
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/sfc/falcon/sfc-falcon.ko
+  AUTOLOAD:=$(call AutoProbe,sfc-falcon)
+endef
+
+define KernelPackage/sfc-falcon/description
+  Solarflare SFC4000 support
+endef
+
+$(eval $(call KernelPackage,sfc-falcon))
+
+
+define KernelPackage/wwan
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=WWAN Driver Core
+  KCONFIG:= \
+  CONFIG_WWAN \
+  CONFIG_WWAN_DEBUGFS=y
+  FILES:=$(LINUX_DIR)/drivers/net/wwan/wwan.ko
+  AUTOLOAD:=$(call AutoProbe,wwan)
+endef
+
+define KernelPackage/wwan/description
+ This driver provides a common framework for WWAN drivers.
+endef
+
+$(eval $(call KernelPackage,wwan))
+
+
+define KernelPackage/mhi-net
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MHI Network Device
+  DEPENDS:=@PCI_SUPPORT +kmod-mhi-bus
+  KCONFIG:=CONFIG_MHI_NET
+  FILES:=$(LINUX_DIR)/drivers/net/mhi_net.ko
+  AUTOLOAD:=$(call AutoProbe,mhi_net)
+endef
+
+define KernelPackage/mhi-net/description
+ Driver for MHI network interface
+endef
+
+$(eval $(call KernelPackage,mhi-net))
+
+define KernelPackage/mhi-wwan-ctrl
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MHI WWAN Control
+  DEPENDS:=@PCI_SUPPORT +kmod-mhi-bus +kmod-wwan
+  KCONFIG:=CONFIG_MHI_WWAN_CTRL
+  FILES:=$(LINUX_DIR)/drivers/net/wwan/mhi_wwan_ctrl.ko
+  AUTOLOAD:=$(call AutoProbe,mhi_wwan_ctrl)
+endef
+
+define KernelPackage/mhi-wwan-ctrl/description
+ Driver for MHI WWAN Control
+ This exposes all modem control ports like AT, MBIM, QMI, DIAG, ..
+endef
+
+$(eval $(call KernelPackage,mhi-wwan-ctrl))
+
+define KernelPackage/mhi-wwan-mbim
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MHI MBIM
+  DEPENDS:=@PCI_SUPPORT +kmod-mhi-bus +kmod-wwan
+  KCONFIG:=CONFIG_MHI_WWAN_MBIM
+  FILES:=$(LINUX_DIR)/drivers/net/wwan/mhi_wwan_mbim.ko
+  AUTOLOAD:=$(call AutoProbe,mhi_wwan_mbim)
+endef
+
+define KernelPackage/mhi-wwan-mbim/description
+ Driver for MHI MBIM
+ This implements MBIM over MHI
+endef
+
+$(eval $(call KernelPackage,mhi-wwan-mbim))
+
+
+define KernelPackage/mtk-t7xx
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MediaTek T7xx 5G modem
+  DEPENDS:=@PCI_SUPPORT +kmod-wwan
+  KCONFIG:=CONFIG_MTK_T7XX
+  FILES:=$(LINUX_DIR)/drivers/net/wwan/t7xx/mtk_t7xx.ko
+  AUTOLOAD:=$(call AutoProbe,mtk_t7xx)
+endef
+
+define KernelPackage/mtk-t7xx/description
+ Driver for MediaTek PCIe 5G WWAN modem T7xx device
+endef
+
+$(eval $(call KernelPackage,mtk-t7xx))
+
+
+define KernelPackage/atlantic
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Aquantia AQtion 10Gbps Ethernet NIC
+  DEPENDS:=@PCI_SUPPORT +kmod-ptp +kmod-hwmon-core +kmod-macsec
+  KCONFIG:=CONFIG_AQTION
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/aquantia/atlantic/atlantic.ko
+  AUTOLOAD:=$(call AutoProbe,atlantic)
+endef
+
+define KernelPackage/atlantic/description
+  Kernel modules for Aquantia AQtion 10Gbps Ethernet NIC
+endef
+
+$(eval $(call KernelPackage,atlantic))
+
+
+define KernelPackage/lan743x
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Microchip LAN743x PCI Express Gigabit Ethernet NIC
+  DEPENDS:=@PCI_SUPPORT +kmod-ptp +kmod-mdio-devres +kmod-fixed-phy
+  KCONFIG:=CONFIG_LAN743X
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/microchip/lan743x.ko
+  AUTOLOAD:=$(call AutoProbe,lan743x)
+endef
+
+define KernelPackage/lan743x/description
+  Kernel module for Microchip LAN743x PCI Express Gigabit Ethernet NIC
+endef
+
+$(eval $(call KernelPackage,lan743x))
+
+define KernelPackage/amazon-ena
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Elastic Network Adapter (for Amazon AWS)
+  DEPENDS:=@TARGET_x86_64||TARGET_armsr_armv8
+  KCONFIG:=CONFIG_ENA_ETHERNET
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/amazon/ena/ena.ko
+  AUTOLOAD:=$(call AutoLoad,12,ena)
+endef
+
+define KernelPackage/amazon-ena/description
+  This driver supports Elastic Network Adapter (ENA)
+  used by Amazon AWS T3 (2018) and later instances.
+endef
+
+$(eval $(call KernelPackage,amazon-ena))

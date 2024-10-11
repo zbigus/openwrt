@@ -3,6 +3,8 @@ define Package/ibt-firmware/install
 	$(INSTALL_DIR) $(1)/lib/firmware/intel
 	$(CP) \
 		$(PKG_BUILD_DIR)/intel/*.bseq \
+		$(PKG_BUILD_DIR)/intel/ibt*.sfi \
+		$(PKG_BUILD_DIR)/intel/ibt*.ddc \
 		$(1)/lib/firmware/intel
 endef
 $(eval $(call BuildPackage,ibt-firmware))
@@ -168,6 +170,43 @@ define Package/iwlwifi-firmware-iwl9260/install
 endef
 $(eval $(call BuildPackage,iwlwifi-firmware-iwl9260))
 
+Package/iwlwifi-firmware-ax101 = $(call Package/firmware-default,Intel AX101 firmware)
+define Package/iwlwifi-firmware-ax101/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-so-a0-hr-b0-89.ucode $(1)/lib/firmware
+endef
+$(eval $(call BuildPackage,iwlwifi-firmware-ax101))
+
+Package/iwlwifi-firmware-ax200 = $(call Package/firmware-default,Intel AX200 firmware)
+define Package/iwlwifi-firmware-ax200/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-cc-a0-77.ucode $(1)/lib/firmware
+endef
+$(eval $(call BuildPackage,iwlwifi-firmware-ax200))
+
+Package/iwlwifi-firmware-ax201 = $(call Package/firmware-default,Intel AX201 firmware)
+define Package/iwlwifi-firmware-ax201/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-QuZ-a0-hr-b0-77.ucode $(1)/lib/firmware
+endef
+$(eval $(call BuildPackage,iwlwifi-firmware-ax201))
+
+Package/iwlwifi-firmware-ax210 = $(call Package/firmware-default,Intel AX210 firmware)
+define Package/iwlwifi-firmware-ax210/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-ty-a0-gf-a0-89.ucode $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-ty-a0-gf-a0.pnvm $(1)/lib/firmware
+endef
+$(eval $(call BuildPackage,iwlwifi-firmware-ax210))
+
+Package/iwlwifi-firmware-be200 = $(call Package/firmware-default,Intel BE200 firmware)
+define Package/iwlwifi-firmware-be200/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-gl-c0-fm-c0-92.ucode $(1)/lib/firmware
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/iwlwifi-gl-c0-fm-c0.pnvm $(1)/lib/firmware
+endef
+$(eval $(call BuildPackage,iwlwifi-firmware-be200))
+
 Package/e100-firmware = $(call Package/firmware-default,Intel e100)
 define Package/e100-firmware/install
 	$(INSTALL_DIR) $(1)/lib/firmware/e100
@@ -176,3 +215,30 @@ define Package/e100-firmware/install
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/e100/d102e_ucode.bin $(1)/lib/firmware/e100/
 endef
 $(eval $(call BuildPackage,e100-firmware))
+
+Package/intel-igpu-firmware-dmc = $(call Package/firmware-default,Intel iGPU DMC Display MC firmware)
+define Package/intel-igpu-firmware-dmc/install
+	$(INSTALL_DIR) $(1)/lib/firmware/i915
+	$(CP) \
+		$(PKG_BUILD_DIR)/i915/*_dmc_*.bin* \
+		$(1)/lib/firmware/i915/
+endef
+$(eval $(call BuildPackage,intel-igpu-firmware-dmc))
+
+Package/intel-igpu-firmware-guc = $(call Package/firmware-default,Intel iGPU GUC Graphics MC firmware)
+define Package/intel-igpu-firmware-guc/install
+	$(INSTALL_DIR) $(1)/lib/firmware/i915
+	$(CP) \
+		$(PKG_BUILD_DIR)/i915/*_guc_*.bin* \
+		$(1)/lib/firmware/i915/
+endef
+$(eval $(call BuildPackage,intel-igpu-firmware-guc))
+
+Package/intel-igpu-firmware-huc = $(call Package/firmware-default,Intel iGPU HUC H.265 MC firmware)
+define Package/intel-igpu-firmware-huc/install
+	$(INSTALL_DIR) $(1)/lib/firmware/i915
+	$(CP) \
+		$(PKG_BUILD_DIR)/i915/*_huc_*.bin* \
+		$(1)/lib/firmware/i915/
+endef
+$(eval $(call BuildPackage,intel-igpu-firmware-huc))
