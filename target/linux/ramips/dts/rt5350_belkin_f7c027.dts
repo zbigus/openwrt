@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt5350.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "belkin,f7c027", "ralink,rt5350-soc";
@@ -20,22 +19,25 @@
 		compatible = "gpio-leds";
 
 		status {
-			label = "f7c027:blue:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 		};
 
 		power {
-			label = "f7c027:blue:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		led_status_orange: orange {
-			label = "f7c027:orange:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_ORANGE>;
 			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		};
 
 		relay {
-			label = "f7c027:device:relay";
+			label = "device:relay";
 			gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
 		};
 	};
@@ -67,7 +69,7 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
@@ -89,10 +91,20 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -130,12 +142,13 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "jtag", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "jtag", "uartf";
+		function = "gpio";
 	};
 };

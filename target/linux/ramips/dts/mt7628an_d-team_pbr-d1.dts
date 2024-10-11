@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "mt7628an.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "d-team,pbr-d1", "mediatek,mt7628an-soc";
@@ -28,15 +27,17 @@
 		compatible = "gpio-leds";
 
 		usb {
-			label = "pbr-d1:orange:usb";
-			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_ORANGE>;
+			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&ohci_port1>, <&ehci_port1>;
 			linux,default-trigger = "usbport";
 		};
 
 		led_power: power {
-			label = "pbr-d1:orange:power";
-			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_ORANGE>;
+			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
 	};
@@ -46,7 +47,7 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio1 38 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 70 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 	};
@@ -62,28 +63,28 @@
 
 &state_default {
 	gpio {
-		ralink,group = "gpio";
-		ralink,function = "gpio";
+		groups = "gpio";
+		function = "gpio";
 	};
 
 	i2c {
-		ralink,group = "i2c";
-		ralink,function = "gpio";
+		groups = "i2c";
+		function = "gpio";
 	};
 
 	i2s {
-		ralink,group = "i2s";
-		ralink,function = "gpio";
+		groups = "i2s";
+		function = "gpio";
 	};
 
 	spis {
-		ralink,group = "spis";
-		ralink,function = "gpio";
+		groups = "spis";
+		function = "gpio";
 	};
 
 	wdt {
-		ralink,group = "wdt";
-		ralink,function = "gpio";
+		groups = "wdt";
+		function = "gpio";
 	};
 };
 
@@ -93,7 +94,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi_pins>, <&spi_cs1_pins>;
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <40000000>;
@@ -114,10 +115,20 @@
 				reg = <0x30000 0x10000>;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -154,10 +165,11 @@
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &sdhci {
 	status = "okay";
-	mediatek,cd-high;
+	cd-inverted;
 };

@@ -1,9 +1,9 @@
-/dts-v1/;
-
 #include "mt7620n.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
 	compatible = "dlink,dwr-921-c1", "ralink,mt7620n-soc";
@@ -34,37 +34,38 @@
 		compatible = "gpio-leds";
 
 		sms {
-			label = "dwr-921-c1:green:sms";
+			label = "green:sms";
 			gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
 		};
 
 		lan {
-			label = "dwr-921-c1:green:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_sstrenghg: sstrengthg {
-			label = "dwr-921-c1:green:sigstrength";
+			label = "green:sigstrength";
 			gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
 		};
 
 		sstrengthr {
-			label = "dwr-921-c1:red:sigstrength";
+			label = "red:sigstrength";
 			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
 		};
 
 		4g {
-			label = "dwr-921-c1:green:4g";
+			label = "green:4g";
 			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
 		};
 
 		3g {
-			label = "dwr-921-c1:green:3g";
+			label = "green:3g";
 			gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi {
-			label = "dwr-921-c1:green:wifi";
+			label = "green:wifi";
 			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -113,12 +114,14 @@
 			};
 
 			partition@10000 {
-				compatible = "amit,jimage";
+				compatible = "openwrt,uimage", "denx,uimage";
+				openwrt,ih-magic = <IH_MAGIC_OKLI>;
+				openwrt,offset = <0x10000>;
 				label = "firmware";
 				reg = <0x10000 0xfe0000>;
 			};
 
-			config: partition@ff0000 {
+			partition@ff0000 {
 				label = "config";
 				reg = <0xff0000 0x10000>;
 				read-only;
@@ -135,15 +138,9 @@
 	status = "okay";
 };
 
-&ethernet {
-	port@4 {
-		status = "okay";
-	};
-};
-
 &state_default {
 	default {
-		ralink,group = "spi refclk", "i2c", "ephy", "wled";
-		ralink,function = "gpio";
+		groups = "spi refclk", "i2c", "ephy", "wled";
+		function = "gpio";
 	};
 };

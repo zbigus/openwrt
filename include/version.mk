@@ -1,10 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2012-2015 OpenWrt.org
 # Copyright (C) 2016 LEDE Project
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 
 # Substituted by SDK, do not remove
 # REVISION:=x
@@ -32,7 +29,7 @@ VERSION_CODE:=$(call qstrip,$(CONFIG_VERSION_CODE))
 VERSION_CODE:=$(if $(VERSION_CODE),$(VERSION_CODE),$(REVISION))
 
 VERSION_REPO:=$(call qstrip,$(CONFIG_VERSION_REPO))
-VERSION_REPO:=$(if $(VERSION_REPO),$(VERSION_REPO),http://downloads.openwrt.org/snapshots)
+VERSION_REPO:=$(if $(VERSION_REPO),$(VERSION_REPO),https://downloads.openwrt.org/snapshots)
 
 VERSION_DIST:=$(call qstrip,$(CONFIG_VERSION_DIST))
 VERSION_DIST:=$(if $(VERSION_DIST),$(VERSION_DIST),OpenWrt)
@@ -98,7 +95,7 @@ VERSION_SED_SCRIPT:=$(SED) 's,%U,$(call sed_escape,$(VERSION_REPO)),g' \
 	-e 's,%d,\L$(call sed_escape,$(subst $(space),_,$(VERSION_DIST))),g' \
 	-e 's,%R,$(call sed_escape,$(REVISION)),g' \
 	-e 's,%T,$(call sed_escape,$(BOARD)),g' \
-	-e 's,%S,$(call sed_escape,$(BOARD)/$(if $(SUBTARGET),$(SUBTARGET),generic)),g' \
+	-e 's,%S,$(call sed_escape,$(BOARD)/$(SUBTARGET)),g' \
 	-e 's,%A,$(call sed_escape,$(ARCH_PACKAGES)),g' \
 	-e 's,%t,$(call sed_escape,$(VERSION_TAINTS)),g' \
 	-e 's,%M,$(call sed_escape,$(VERSION_MANUFACTURER)),g' \

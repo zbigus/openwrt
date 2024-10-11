@@ -1,23 +1,18 @@
-/dts-v1/;
-
 #include "mt7621.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "gnubee,gb-pc1", "mediatek,mt7621-soc";
-	model = "GB-PC1";
+	model = "GnuBee GB-PC1";
 
 	aliases {
-		led-boot = &led_status;
-		led-failsafe = &led_status;
-		led-running = &led_status;
-		led-upgrade = &led_status;
-	};
-
-	chosen {
-		bootargs = "console=ttyS0,57600";
+		led-boot = &led_system;
+		led-failsafe = &led_system;
+		led-running = &led_system;
+		led-upgrade = &led_system;
 	};
 
 	keys {
@@ -25,7 +20,7 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio 18 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_RESTART>;
 		};
 	};
@@ -33,24 +28,17 @@
 	leds {
 		compatible = "gpio-leds";
 
-		system {
-			label = "gb-pc1:green:system";
-			gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+		power {
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "default-on";
 		};
 
-		led_status: status {
-			label = "gb-pc1:green:status";
-			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
-		};
-
-		lan1 {
-			label = "gb-pc1:green:lan1";
-			gpios = <&gpio0 24 GPIO_ACTIVE_LOW>;
-		};
-
-		lan2 {
-			label = "gb-pc1:green:lan2";
-			gpios = <&gpio0 25 GPIO_ACTIVE_LOW>;
+		led_system: system {
+			label = "green:system";
+			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "disk-activity";
 		};
 	};
 };
@@ -62,11 +50,11 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <80000000>;
-		m25p,fast-read;
+		spi-max-frequency = <50000000>;
+		broken-flash-reset;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -85,10 +73,20 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_factory_e000: macaddr@e000 {
+						reg = <0xe000 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -104,13 +102,36 @@
 	status = "okay";
 };
 
-&ethernet {
-	mtd-mac-address = <&factory 0xe000>;
+&gmac0 {
+	nvmem-cells = <&macaddr_factory_e000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&gmac1 {
+	status = "okay";
+	label = "ethblue";
+	phy-handle = <&ethphy4>;
+
+	nvmem-cells = <&macaddr_factory_e000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&ethphy4 {
+	/delete-property/ interrupts;
+};
+
+&switch0 {
+	ports {
+		port@0 {
+			status = "okay";
+			label = "ethblack";
+		};
+	};
 };
 
 &state_default {
 	gpio {
-		ralink,group = "jtag", "rgmii2", "uart3", "wdt";
-		ralink,function = "gpio";
+		groups = "jtag", "uart3", "wdt";
+		function = "gpio";
 	};
 };

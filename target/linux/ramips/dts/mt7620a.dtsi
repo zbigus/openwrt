@@ -1,7 +1,15 @@
+/dts-v1/;
+
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
 	compatible = "ralink,mt7620a-soc";
+
+	aliases {
+		spi0 = &spi0;
+		spi1 = &spi1;
+		serial0 = &uartlite;
+	};
 
 	cpus {
 		#address-cells = <1>;
@@ -24,10 +32,33 @@
 		compatible = "mti,cpu-interrupt-controller";
 	};
 
-	aliases {
-		spi0 = &spi0;
-		spi1 = &spi1;
-		serial0 = &uartlite;
+	mmc_clk: mmc-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <48000000>;
+		clock-accuracy = <100>;
+	};
+
+	mmc_reg_1v8: regulator-1v8 {
+		compatible = "regulator-fixed";
+
+		enable-active-high;
+
+		regulator-always-on;
+		regulator-max-microvolt = <1800000>;
+		regulator-min-microvolt = <1800000>;
+		regulator-name = "mmc_io";
+	};
+
+	mmc_reg_3v3: regulator-3v3 {
+		compatible = "regulator-fixed";
+
+		enable-active-high;
+
+		regulator-always-on;
+		regulator-max-microvolt = <3300000>;
+		regulator-min-microvolt = <3300000>;
+		regulator-name = "mmc_power";
 	};
 
 	palmbus: palmbus@10000000 {
@@ -38,24 +69,30 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
-		sysc: sysc@0 {
-			compatible = "ralink,mt7620a-sysc", "ralink,rt3050-sysc", "syscon";
+		sysc: syscon@0 {
+			compatible = "ralink,mt7620-sysc", "syscon";
 			reg = <0x0 0x100>;
+			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		timer: timer@100 {
-			compatible = "ralink,mt7620a-timer", "ralink,rt2880-timer";
+			compatible = "ralink,rt2880-timer";
 			reg = <0x100 0x20>;
+
+			clocks = <&sysc 5>;
 
 			interrupt-parent = <&intc>;
 			interrupts = <1>;
 		};
 
 		watchdog: watchdog@120 {
-			compatible = "ralink,mt7620a-wdt", "ralink,rt2880-wdt";
+			compatible = "ralink,rt2880-wdt";
 			reg = <0x120 0x10>;
 
-			resets = <&rstctrl 8>;
+			clocks = <&sysc 6>;
+
+			resets = <&sysc 8>;
 			reset-names = "wdt";
 
 			interrupt-parent = <&intc>;
@@ -63,11 +100,8 @@
 		};
 
 		intc: intc@200 {
-			compatible = "ralink,mt7620a-intc", "ralink,rt2880-intc";
+			compatible = "ralink,rt2880-intc";
 			reg = <0x200 0x100>;
-
-			resets = <&rstctrl 19>;
-			reset-names = "intc";
 
 			interrupt-controller;
 			#interrupt-cells = <1>;
@@ -80,9 +114,6 @@
 			compatible = "ralink,mt7620a-memc", "ralink,rt3050-memc";
 			reg = <0x300 0x100>;
 
-			resets = <&rstctrl 20>;
-			reset-names = "mc";
-
 			interrupt-parent = <&intc>;
 			interrupts = <3>;
 		};
@@ -91,8 +122,9 @@
 			compatible = "ralink,mt7620a-uart", "ralink,rt2880-uart", "ns16550a";
 			reg = <0x500 0x100>;
 
-			resets = <&rstctrl 12>;
-			reset-names = "uart";
+			clocks = <&sysc 7>;
+
+			resets = <&sysc 12>;
 
 			interrupt-parent = <&intc>;
 			interrupts = <5>;
@@ -103,11 +135,8 @@
 		};
 
 		gpio0: gpio@600 {
-			compatible = "ralink,mt7620a-gpio", "ralink,rt2880-gpio";
+			compatible = "ralink,rt2880-gpio";
 			reg = <0x600 0x34>;
-
-			resets = <&rstctrl 13>;
-			reset-names = "pio";
 
 			interrupt-parent = <&intc>;
 			interrupts = <6>;
@@ -115,15 +144,14 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 
-			ralink,gpio-base = <0>;
-			ralink,nr-gpio = <24>;
+			ngpios = <24>;
 			ralink,register-map = [ 00 04 08 0c
 						20 24 28 2c
 						30 34 ];
 		};
 
 		gpio1: gpio@638 {
-			compatible = "ralink,mt7620a-gpio", "ralink,rt2880-gpio";
+			compatible = "ralink,rt2880-gpio";
 			reg = <0x638 0x24>;
 
 			interrupt-parent = <&intc>;
@@ -132,8 +160,7 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 
-			ralink,gpio-base = <24>;
-			ralink,nr-gpio = <16>;
+			ngpios = <16>;
 			ralink,register-map = [ 00 04 08 0c
 						10 14 18 1c
 						20 24 ];
@@ -142,7 +169,7 @@
 		};
 
 		gpio2: gpio@660 {
-			compatible = "ralink,mt7620a-gpio", "ralink,rt2880-gpio";
+			compatible = "ralink,rt2880-gpio";
 			reg = <0x660 0x24>;
 
 			interrupt-parent = <&intc>;
@@ -151,8 +178,7 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 
-			ralink,gpio-base = <40>;
-			ralink,nr-gpio = <32>;
+			ngpios = <32>;
 			ralink,register-map = [ 00 04 08 0c
 						10 14 18 1c
 						20 24 ];
@@ -161,7 +187,7 @@
 		};
 
 		gpio3: gpio@688 {
-			compatible = "ralink,mt7620a-gpio", "ralink,rt2880-gpio";
+			compatible = "ralink,rt2880-gpio";
 			reg = <0x688 0x24>;
 
 			interrupt-parent = <&intc>;
@@ -170,8 +196,7 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 
-			ralink,gpio-base = <72>;
-			ralink,nr-gpio = <1>;
+			ngpios = <1>;
 			ralink,register-map = [ 00 04 08 0c
 						10 14 18 1c
 						20 24 ];
@@ -183,7 +208,9 @@
 			compatible = "ralink,rt2880-i2c";
 			reg = <0x900 0x100>;
 
-			resets = <&rstctrl 16>;
+			clocks = <&sysc 8>;
+
+			resets = <&sysc 16>;
 			reset-names = "i2c";
 
 			#address-cells = <1>;
@@ -199,7 +226,9 @@
 			compatible = "mediatek,mt7620-i2s";
 			reg = <0xa00 0x100>;
 
-			resets = <&rstctrl 17>;
+			clocks = <&sysc 9>;
+
+			resets = <&sysc 17>;
 			reset-names = "i2s";
 
 			interrupt-parent = <&intc>;
@@ -216,10 +245,12 @@
 		};
 
 		spi0: spi@b00 {
-			compatible = "ralink,mt7620a-spi", "ralink,rt2880-spi";
+			compatible = "ralink,rt2880-spi";
 			reg = <0xb00 0x40>;
 
-			resets = <&rstctrl 18>;
+			clocks = <&sysc 10>;
+
+			resets = <&sysc 18>;
 			reset-names = "spi";
 
 			#address-cells = <1>;
@@ -235,7 +266,9 @@
 			compatible = "ralink,rt2880-spi";
 			reg = <0xb40 0x60>;
 
-			resets = <&rstctrl 18>;
+			clocks = <&sysc 11>;
+
+			resets = <&sysc 18>;
 			reset-names = "spi";
 
 			#address-cells = <1>;
@@ -251,8 +284,9 @@
 			compatible = "ralink,mt7620a-uart", "ralink,rt2880-uart", "ns16550a";
 			reg = <0xc00 0x100>;
 
-			resets = <&rstctrl 19>;
-			reset-names = "uartl";
+			clocks = <&sysc 12>;
+
+			resets = <&sysc 19>;
 
 			interrupt-parent = <&intc>;
 			interrupts = <12>;
@@ -267,9 +301,6 @@
 			compatible = "ralink,mt7620a-systick", "ralink,cevt-systick";
 			reg = <0xd00 0x10>;
 
-			resets = <&rstctrl 28>;
-			reset-names = "intc";
-
 			interrupt-parent = <&cpuintc>;
 			interrupts = <7>;
 		};
@@ -278,7 +309,7 @@
 			compatible = "ralink,mt7620a-pcm";
 			reg = <0x2000 0x800>;
 
-			resets = <&rstctrl 11>;
+			resets = <&sysc 11>;
 			reset-names = "pcm";
 
 			interrupt-parent = <&intc>;
@@ -288,10 +319,10 @@
 		};
 
 		gdma: gdma@2800 {
-			compatible = "ralink,mt7620a-gdma", "ralink,rt3883-gdma";
+			compatible = "ralink,rt3883-gdma";
 			reg = <0x2800 0x800>;
 
-			resets = <&rstctrl 14>;
+			resets = <&sysc 14>;
 			reset-names = "dma";
 
 			interrupt-parent = <&intc>;
@@ -315,125 +346,122 @@
 
 		pcm_i2s_pins: pcm_i2s {
 			pcm_i2s {
-				ralink,group = "uartf";
-				ralink,function = "pcm i2s";
+				groups = "uartf";
+				function = "pcm i2s";
 			};
 		};
 
 		uartf_gpio_pins: uartf_gpio {
 			uartf_gpio {
-				ralink,group = "uartf";
-				ralink,function = "gpio uartf";
+				groups = "uartf";
+				function = "gpio uartf";
 			};
 		};
 
 		gpio_i2s_pins: gpio_i2s {
 			gpio_i2s {
-				ralink,group = "uartf";
-				ralink,function = "gpio i2s";
+				groups = "uartf";
+				function = "gpio i2s";
 			};
 		};
 
 		spi_pins: spi_pins {
 			spi_pins {
-				ralink,group = "spi";
-				ralink,function = "spi";
+				groups = "spi";
+				function = "spi";
 			};
 		};
 
 		spi_cs1: spi1 {
 			spi1 {
-				ralink,group = "spi refclk";
-				ralink,function = "spi refclk";
+				groups = "spi refclk";
+				function = "spi refclk";
 			};
 		};
 
 		i2c_pins: i2c_pins {
 			i2c_pins {
-				ralink,group = "i2c";
-				ralink,function = "i2c";
+				groups = "i2c";
+				function = "i2c";
 			};
 		};
 
 		uartlite_pins: uartlite {
 			uart {
-				ralink,group = "uartlite";
-				ralink,function = "uartlite";
+				groups = "uartlite";
+				function = "uartlite";
 			};
 		};
 
 		mdio_pins: mdio {
 			mdio {
-				ralink,group = "mdio";
-				ralink,function = "mdio";
+				groups = "mdio";
+				function = "mdio";
 			};
 		};
 
 		mdio_refclk_pins: mdio_refclk {
 			mdio_refclk {
-				ralink,group = "mdio";
-				ralink,function = "refclk";
+				groups = "mdio";
+				function = "refclk";
 			};
 		};
 
 		ephy_pins: ephy {
 			ephy {
-				ralink,group = "ephy";
-				ralink,function = "ephy";
+				groups = "ephy";
+				function = "ephy";
 			};
 		};
 
 		wled_pins: wled {
 			wled {
-				ralink,group = "wled";
-				ralink,function = "wled";
+				groups = "wled";
+				function = "wled";
 			};
 		};
 
 		rgmii1_pins: rgmii1 {
 			rgmii1 {
-				ralink,group = "rgmii1";
-				ralink,function = "rgmii1";
+				groups = "rgmii1";
+				function = "rgmii1";
 			};
 		};
 
 		rgmii2_pins: rgmii2 {
 			rgmii2 {
-				ralink,group = "rgmii2";
-				ralink,function = "rgmii2";
+				groups = "rgmii2";
+				function = "rgmii2";
 			};
 		};
 
 		pcie_pins: pcie {
 			pcie {
-				ralink,group = "pcie";
-				ralink,function = "pcie rst";
+				groups = "pcie";
+				function = "pcie rst";
 			};
 		};
 
 		pa_pins: pa {
 			pa {
-				ralink,group = "pa";
-				ralink,function = "pa";
+				groups = "pa";
+				function = "pa";
+			};
+		};
+
+		pa_gpio_pins: pa_gpio {
+			pa {
+				groups = "pa";
+				function = "gpio";
 			};
 		};
 
 		sdhci_pins: sdhci {
 			sdhci {
-				ralink,group = "nd_sd";
-				ralink,function = "sd";
+				groups = "nd_sd";
+				function = "sd";
 			};
 		};
-	};
-
-	rstctrl: rstctrl {
-		compatible = "ralink,mt7620a-reset", "ralink,rt2880-reset";
-		#reset-cells = <1>;
-	};
-
-	clkctrl: clkctrl {
-		compatible = "ralink,rt2880-clock";
-		#clock-cells = <1>;
 	};
 
 	usbphy: usbphy {
@@ -441,11 +469,9 @@
 		#phy-cells = <0>;
 
 		ralink,sysctl = <&sysc>;
-		resets = <&rstctrl 22 &rstctrl 25>;
+		/* usb phy reset is only controled by RSTCTRL bit 25 */
+		resets = <&sysc 25>, <&sysc 22>;
 		reset-names = "host", "device";
-
-		clocks = <&clkctrl 22 &clkctrl 25>;
-		clock-names = "host", "device";
 	};
 
 	ethernet: ethernet@10100000 {
@@ -458,20 +484,20 @@
 		interrupt-parent = <&cpuintc>;
 		interrupts = <5>;
 
-		resets = <&rstctrl 21 &rstctrl 23>;
+		resets = <&sysc 21>, <&sysc 23>;
 		reset-names = "fe", "esw";
 
 		mediatek,switch = <&gsw>;
 
 		port@4 {
-			compatible = "mediatek,mt7620a-gsw-port", "mediatek,eth-port";
+			compatible = "mediatek,eth-port";
 			reg = <4>;
 
 			status = "disabled";
 		};
 
 		port@5 {
-			compatible = "mediatek,mt7620a-gsw-port", "mediatek,eth-port";
+			compatible = "mediatek,eth-port";
 			reg = <5>;
 
 			status = "disabled";
@@ -489,22 +515,41 @@
 		compatible = "mediatek,mt7620-gsw";
 		reg = <0x10110000 0x8000>;
 
-		resets = <&rstctrl 23>;
-		reset-names = "esw";
+		resets = <&sysc 24>;
+		reset-names = "ephy";
 
 		interrupt-parent = <&intc>;
 		interrupts = <17>;
 	};
 
-	sdhci: sdhci@10130000 {
-		compatible = "ralink,mt7620-sdhci";
+	sdhci: mmc@10130000 {
+		compatible = "mediatek,mt7620-mmc", "ralink,mt7620-sdhci";
 		reg = <0x10130000 0x4000>;
+
+		bus-width = <4>;
+
+		cap-mmc-highspeed;
+		cap-sd-highspeed;
+
+		clocks = <&mmc_clk>, <&mmc_clk>;
+		clock-names = "source", "hclk";
+
+		disable-wp;
 
 		interrupt-parent = <&intc>;
 		interrupts = <14>;
 
-		pinctrl-names = "default";
+		max-frequency = <48000000>;
+
+		pinctrl-names = "default", "state_uhs";
 		pinctrl-0 = <&sdhci_pins>;
+		pinctrl-1 = <&sdhci_pins>;
+
+		resets = <&sysc 30>;
+		reset-names = "hrst";
+
+		vmmc-supply = <&mmc_reg_3v3>;
+		vqmmc-supply = <&mmc_reg_1v8>;
 
 		status = "disabled";
 	};
@@ -557,11 +602,8 @@
 		#address-cells = <3>;
 		#size-cells = <2>;
 
-		resets = <&rstctrl 26>;
+		resets = <&sysc 26>;
 		reset-names = "pcie0";
-
-		clocks = <&clkctrl 26>;
-		clock-names = "pcie0";
 
 		interrupt-parent = <&cpuintc>;
 		interrupts = <4>;
@@ -594,6 +636,8 @@
 	wmac: wmac@10180000 {
 		compatible = "ralink,rt7620-wmac", "ralink,rt2880-wmac";
 		reg = <0x10180000 0x40000>;
+
+		clocks = <&sysc 13>;
 
 		interrupt-parent = <&cpuintc>;
 		interrupts = <6>;

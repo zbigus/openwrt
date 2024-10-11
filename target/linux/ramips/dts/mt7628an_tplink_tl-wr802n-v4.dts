@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include <dt-bindings/leds/common.h>
 
 #include "mt7628an_tplink_8m.dtsi"
 
@@ -19,7 +20,7 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 	};
@@ -28,19 +29,36 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "tl-wr802n-v4:green:power";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
 
+&ehci {
+	status = "disabled";
+};
+
+&ohci {
+	status = "disabled";
+};
+
 &state_default {
 	gpio {
-		ralink,group = "refclk", "wdt";
-		ralink,function = "gpio";
+		groups = "refclk", "wdt";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0xf100>;
+	nvmem-cells = <&macaddr_factory_f100 0>;
+	nvmem-cell-names = "mac-address";
+};
+
+&wmac {
+	status = "okay";
+
+	nvmem-cells = <&eeprom_factory_20000>, <&macaddr_factory_f100 0>;
+	nvmem-cell-names = "eeprom", "mac-address";
 };

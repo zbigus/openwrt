@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
 
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "alfa-network,r36m-e4g", "ralink,mt7620a-soc";
@@ -82,40 +82,43 @@
 		compatible = "gpio-leds";
 
 		4g {
-			label = "r36m-e4g:orange:4g";
+			label = "orange:4g";
 			gpios = <&gpio1 3 GPIO_ACTIVE_LOW>;
 		};
 
 		lan {
-			label = "r36m-e4g:green:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
 		};
 
 		led_system: system {
-			label = "r36m-e4g:green:system";
+			label = "green:system";
 			gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 
 		sim1 {
-			label = "r36m-e4g:green:sim1";
+			label = "green:sim1";
 			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 
 		sim2 {
-			label = "r36m-e4g:green:sim2";
+			label = "green:sim2";
 			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
 
 		wan {
-			label = "r36m-e4g:green:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio2 4 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "r36m-e4g:orange:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_ORANGE>;
 			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0radio";
 		};
@@ -127,7 +130,8 @@
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &gpio1 {
@@ -142,10 +146,6 @@
 	status = "okay";
 };
 
-&gsw {
-	mediatek,port4 = "ephy";
-};
-
 &i2c {
 	status = "okay";
 };
@@ -156,8 +156,8 @@
 
 &state_default {
 	gpio {
-		ralink,group = "ephy", "pcie", "rgmii1", "wled";
-		ralink,function = "gpio";
+		groups = "ephy", "pcie", "rgmii1", "wled";
+		function = "gpio";
 	};
 };
 
@@ -192,10 +192,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -212,5 +226,6 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

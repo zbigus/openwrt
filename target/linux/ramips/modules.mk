@@ -1,11 +1,29 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2006-2016 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 
 OTHER_MENU:=Other modules
+
+define KernelPackage/mmc-mtk
+  SUBMENU:=Other modules
+  TITLE:=MediaTek SD/MMC Card Interface support
+  DEPENDS:=@(TARGET_ramips_mt7620||TARGET_ramips_mt76x8||TARGET_ramips_mt7621) +kmod-mmc
+  KCONFIG:= \
+	CONFIG_MMC \
+	CONFIG_MMC_MTK \
+	CONFIG_MMC_CQHCI
+  FILES:= \
+	$(LINUX_DIR)/drivers/mmc/host/cqhci.ko \
+	$(LINUX_DIR)/drivers/mmc/host/mtk-sd.ko
+  AUTOLOAD:=$(call AutoProbe,cqhci mtk-sd,1)
+endef
+
+define KernelPackage/mmc-mtk/description
+  MediaTek(R) Secure digital and Multimedia card Interface.
+  This is needed if support for any SD/SDIO/MMC devices is required.
+endef
+
+$(eval $(call KernelPackage,mmc-mtk))
 
 define KernelPackage/pwm-mediatek-ramips
   SUBMENU:=Other modules
@@ -77,11 +95,10 @@ $(eval $(call KernelPackage,i2c-mt7628))
 define KernelPackage/dma-ralink
   SUBMENU:=Other modules
   TITLE:=Ralink GDMA Engine
-  DEPENDS:=@TARGET_ramips
+  DEPENDS:=@TARGET_ramips @!TARGET_ramips_rt288x
   KCONFIG:= \
 	CONFIG_DMADEVICES=y \
-	CONFIG_DW_DMAC_PCI=n \
-	CONFIG_DMA_RALINK
+	CONFIG_RALINK_GDMA
   FILES:= \
 	$(LINUX_DIR)/drivers/dma/virt-dma.ko \
 	$(LINUX_DIR)/drivers/dma/ralink-gdma.ko
@@ -89,7 +106,7 @@ define KernelPackage/dma-ralink
 endef
 
 define KernelPackage/dma-ralink/description
- Kernel modules for enable ralink dma engine.
+ Kernel modules for enable ralink gdma engine.
 endef
 
 $(eval $(call KernelPackage,dma-ralink))
@@ -100,12 +117,11 @@ define KernelPackage/hsdma-mtk
   DEPENDS:=@TARGET_ramips @TARGET_ramips_mt7621
   KCONFIG:= \
 	CONFIG_DMADEVICES=y \
-	CONFIG_DW_DMAC_PCI=n \
 	CONFIG_MTK_HSDMA
   FILES:= \
 	$(LINUX_DIR)/drivers/dma/virt-dma.ko \
-	$(LINUX_DIR)/drivers/dma/mtk-hsdma.ko
-  AUTOLOAD:=$(call AutoLoad,53,mtk-hsdma)
+	$(LINUX_DIR)/drivers/dma/mediatek/hsdma-mt7621.ko
+  AUTOLOAD:=$(call AutoLoad,53,hsdma-mt7621)
 endef
 
 define KernelPackage/hsdma-mtk/description
@@ -116,18 +132,17 @@ $(eval $(call KernelPackage,hsdma-mtk))
 
 define KernelPackage/sound-mt7620
   TITLE:=MT7620 PCM/I2S Alsa Driver
-  DEPENDS:=@TARGET_ramips +kmod-sound-soc-core +kmod-regmap-i2c +kmod-dma-ralink @!TARGET_ramips_rt288x
+  DEPENDS:=@TARGET_ramips @!TARGET_ramips_rt288x +kmod-dma-ralink \
+	+kmod-sound-soc-core +kmod-sound-soc-wm8960
   KCONFIG:= \
 	CONFIG_SND_RALINK_SOC_I2S \
 	CONFIG_SND_SIMPLE_CARD \
-	CONFIG_SND_SIMPLE_CARD_UTILS \
-	CONFIG_SND_SOC_WM8960
+	CONFIG_SND_SIMPLE_CARD_UTILS
   FILES:= \
 	$(LINUX_DIR)/sound/soc/ralink/snd-soc-ralink-i2s.ko \
 	$(LINUX_DIR)/sound/soc/generic/snd-soc-simple-card.ko \
-	$(LINUX_DIR)/sound/soc/generic/snd-soc-simple-card-utils.ko \
-	$(LINUX_DIR)/sound/soc/codecs/snd-soc-wm8960.ko
-  AUTOLOAD:=$(call AutoLoad,90,snd-soc-wm8960 snd-soc-ralink-i2s snd-soc-simple-card)
+	$(LINUX_DIR)/sound/soc/generic/snd-soc-simple-card-utils.ko
+  AUTOLOAD:=$(call AutoLoad,90,snd-soc-ralink-i2s snd-soc-simple-card)
   $(call AddDepends/sound)
 endef
 

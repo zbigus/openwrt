@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include "qca953x.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "qca953x.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "comfast,cf-e560ac", "qca,qca9531";
@@ -36,37 +36,39 @@
 		pinctrl-0 = <&jtag_disable_pins>;
 
 		lan1 {
-			label = "cf-e560ac:blue:lan1";
+			label = "blue:lan1";
 			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
 		};
 
 		lan2 {
-			label = "cf-e560ac:blue:lan2";
+			label = "blue:lan2";
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
 		};
 
 		lan3 {
-			label = "cf-e560ac:blue:lan3";
+			label = "blue:lan3";
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 		};
 
 		lan4 {
-			label = "cf-e560ac:blue:lan4";
+			label = "blue:lan4";
 			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		};
 
 		led_system: system {
-			label = "cf-e560ac:blue:system";
+			label = "blue:system";
 			gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
 		};
 
 		wan {
-			label = "cf-e560ac:blue:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "cf-e560ac:blue:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0tpt";
 		};
@@ -83,8 +85,6 @@
 
 &spi {
 	status = "okay";
-
-	num-cs = <1>;
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
@@ -106,6 +106,26 @@
 				label = "art";
 				reg = <0x010000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_art_0: macaddr@0 {
+						compatible = "mac-base";
+						reg = <0x0 0x6>;
+						#nvmem-cell-cells = <1>;
+					};
+
+					cal_art_1000: calibration@1000 {
+						reg = <0x1000 0x440>;
+					};
+
+					precal_art_5000: pre-calibration@5000 {
+						reg = <0x5000 0x2f20>;
+					};
+				};
 			};
 
 			partition@20000 {
@@ -131,10 +151,13 @@
 
 &pcie0 {
 	status = "okay";
-};
 
-&uart {
-	status = "okay";
+	wifi@0,0 {
+		compatible = "qcom,ath10k";
+		reg = <0x0000 0 0 0 0>;
+		nvmem-cells = <&precal_art_5000>, <&macaddr_art_0 2>;
+		nvmem-cell-names = "pre-calibration", "mac-address";
+	};
 };
 
 &usb_phy {
@@ -142,14 +165,7 @@
 };
 
 &usb0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
 	status = "okay";
-
-	port@1 {
-		reg = <1>;
-		#trigger-source-cells = <0>;
-	};
 };
 
 &eth0 {
@@ -157,18 +173,18 @@
 
 	phy-handle = <&swphy4>;
 
-	mtd-mac-address = <&art 0x0>;
-	mtd-mac-address-increment = <1>;
+	nvmem-cells = <&macaddr_art_0 1>;
+	nvmem-cell-names = "mac-address";
 };
 
 &eth1 {
-	mtd-mac-address = <&art 0x0>;
+	nvmem-cells = <&macaddr_art_0 0>;
+	nvmem-cell-names = "mac-address";
 };
 
 &wmac {
 	status = "okay";
 
-	mtd-cal-data = <&art 0x1000>;
-	mtd-mac-address = <&art 0x0>;
-	mtd-mac-address-increment = <10>;
+	nvmem-cells = <&macaddr_art_0 10>, <&cal_art_1000>;
+	nvmem-cell-names = "mac-address", "calibration";
 };

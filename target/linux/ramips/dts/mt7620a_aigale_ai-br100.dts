@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "aigale,ai-br100", "ralink,mt7620a-soc";
@@ -20,12 +19,14 @@
 		compatible = "gpio-leds";
 
 		wan {
-			label = "ai-br100:blue:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio2 4 GPIO_ACTIVE_LOW>;
 		};
 
 		led_wlan: wlan {
-			label = "ai-br100:blue:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -52,9 +53,9 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
-		reg = <0 0>;
+		reg = <0>;
 		spi-max-frequency = <10000000>;
 
 		partitions {
@@ -74,10 +75,24 @@
 				read-only;
 			};
 
-			factory: partition@30000 {
+			partition@30000 {
 				label = "factory";
 				reg = <0x30000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@40000 {
@@ -99,16 +114,19 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "uartf", "rgmii1", "rgmii2", "ephy", "wled", "nd_sd";
-		ralink,function = "gpio";
+		groups = "i2c", "uartf", "rgmii1", "rgmii2", "ephy", "wled", "nd_sd";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
+
 	mediatek,portmap = "llllw";
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };

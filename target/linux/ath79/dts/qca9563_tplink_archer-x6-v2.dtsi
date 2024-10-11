@@ -1,36 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
-#include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/input/input.h>
-
 #include "qca956x.dtsi"
 
-/ {
-	aliases {
-		label-mac-device = &eth0;
-	};
-
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
-	};
-};
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 
 &pcie {
 	status = "okay";
 };
 
-&uart {
-	status = "okay";
-};
-
-&gpio {
-	status = "okay";
-};
-
 &mdio0 {
 	status = "okay";
-
-	phy-mask = <0>;
 
 	phy0: ethernet-phy@0 {
 		reg = <0>;
@@ -49,13 +29,8 @@
 
 	phy-mode = "sgmii";
 	phy-handle = <&phy0>;
-
-	mtd-mac-address = <&mac 0x8>;
 };
 
 &wmac {
 	status = "okay";
-
-	mtd-cal-data = <&art 0x1000>;
-	mtd-mac-address = <&mac 0x8>;
 };

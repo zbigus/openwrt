@@ -1,9 +1,7 @@
-# 
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # Copyright (C) 2006-2010 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
+
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
@@ -32,4 +30,4 @@ $(eval $(call BuildImage))
 $(eval $(call TestHostCommand,glibc-static, \
 	Please install a static glibc package. (Missing libutil.a, librt.a or libpthread.a), \
 	echo 'int main(int argc, char **argv) { login(0); timer_gettime(0, 0); return 0; }' | \
-		gcc -include utmp.h -x c -o $(TMP_DIR)/a.out - -static -lutil -lrt))
+		gcc -include utmp.h -include time.h -x c -o $(TMP_DIR)/a.out - -static -lutil -lrt))

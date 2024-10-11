@@ -1,8 +1,7 @@
-/dts-v1/;
-
 #include "mt7620n.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "wrtnode,wrtnode", "ralink,mt7620n-soc";
@@ -19,7 +18,8 @@
 		compatible = "gpio-leds";
 
 		led_indicator: indicator {
-			label = "wrtnode:blue:indicator";
+			function = LED_FUNCTION_INDICATOR;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -29,18 +29,10 @@
 	status = "okay";
 };
 
-&gpio2 {
-	status = "okay";
-};
-
-&gpio3 {
-	status = "okay";
-};
-
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
@@ -62,10 +54,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -86,17 +92,20 @@
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
+
 	mediatek,portmap = "wllll";
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &state_default {
 	default {
-		ralink,group = "ephy", "wled", "pa", "i2c", "wdt", "uartf", "spi refclk";
-		ralink,function = "gpio";
+		groups = "ephy", "wled", "pa", "i2c", "wdt", "uartf", "spi refclk";
+		function = "gpio";
 	};
 };

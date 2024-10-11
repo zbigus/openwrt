@@ -1,13 +1,12 @@
-/dts-v1/;
-
 #include "rt3352.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "zyxel,nbg-419n-v2", "ralink,rt3352-soc";
-	model = "ZyXEL NBG-419N v2";
+	model = "Zyxel NBG-419N v2";
 
 	aliases {
 		led-boot = &led_power;
@@ -16,62 +15,24 @@
 		led-upgrade = &led_power;
 	};
 
-	palmbus@10000000 {
-		spi@b00 {
-			status = "okay";
-			m25p80@0 {
-				compatible = "jedec,spi-nor";
-				reg = <0 0>;
-				spi-max-frequency = <10000000>;
-
-				partitions {
-					compatible = "fixed-partitions";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					partition@0 {
-						label = "u-boot";
-						reg = <0x0 0x30000>;
-						read-only;
-					};
-
-					partition@30000 {
-						label = "u-boot-env";
-						reg = <0x30000 0x10000>;
-						read-only;
-					};
-
-					factory: partition@40000 {
-						label = "factory";
-						reg = <0x40000 0x10000>;
-						read-only;
-					};
-
-					partition@50000 {
-						compatible = "denx,uimage";
-						label = "firmware";
-						reg = <0x50000 0x7b0000>;
-					};
-				};
-			};
-		};
-	};
-
 	leds {
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "nbg-419n2:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		wps {
-			label = "nbg-419n2:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 
 		usb {
-			label = "nbg-419n2:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&ohci_port1>, <&ehci_port1>;
 			linux,default-trigger = "usbport";
@@ -100,15 +61,70 @@
 	};
 };
 
+&spi0 {
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "u-boot";
+				reg = <0x0 0x30000>;
+				read-only;
+			};
+
+			partition@30000 {
+				label = "u-boot-env";
+				reg = <0x30000 0x10000>;
+				read-only;
+			};
+
+			partition@40000 {
+				label = "factory";
+				reg = <0x40000 0x10000>;
+				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
+			};
+
+			partition@50000 {
+				compatible = "denx,uimage";
+				label = "firmware";
+				reg = <0x50000 0x7b0000>;
+			};
+		};
+	};
+};
+
 &state_default {
 	gpio {
-		ralink,group = "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -116,7 +132,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &ehci {

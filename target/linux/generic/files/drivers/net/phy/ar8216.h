@@ -56,10 +56,10 @@
 #define AR8216_REG_FLOOD_MASK		0x002C
 #define   AR8216_FM_UNI_DEST_PORTS	BITS(0, 6)
 #define   AR8216_FM_MULTI_DEST_PORTS	BITS(16, 6)
+#define   AR8216_FM_CPU_BROADCAST_EN	BIT(26)
+#define   AR8229_FLOOD_MASK_UC_DP(_p)	BIT(_p)
 #define   AR8229_FLOOD_MASK_MC_DP(_p)	BIT(16 + (_p))
 #define   AR8229_FLOOD_MASK_BC_DP(_p)	BIT(25 + (_p))
-#define   AR8236_FM_CPU_BROADCAST_EN	BIT(26)
-#define   AR8236_FM_CPU_BCAST_FWD_EN	BIT(25)
 
 #define AR8216_REG_GLOBAL_CTRL		0x0030
 #define   AR8216_GCTRL_MTU		BITS(0, 11)
@@ -506,20 +506,22 @@ struct ar8xxx_priv {
 	unsigned int use_count;
 
 	/* all fields below are cleared on reset */
-	bool vlan;
+	struct_group(ar8xxx_priv_volatile,
+		bool vlan;
 
-	u16 vlan_id[AR8XXX_MAX_VLANS];
-	u8 vlan_table[AR8XXX_MAX_VLANS];
-	u8 vlan_tagged;
-	u16 pvid[AR8X16_MAX_PORTS];
-	int arl_age_time;
+		u16 vlan_id[AR8XXX_MAX_VLANS];
+		u8 vlan_table[AR8XXX_MAX_VLANS];
+		u8 vlan_tagged;
+		u16 pvid[AR8X16_MAX_PORTS];
+		int arl_age_time;
 
-	/* mirroring */
-	bool mirror_rx;
-	bool mirror_tx;
-	int source_port;
-	int monitor_port;
-	u8 port_vlan_prio[AR8X16_MAX_PORTS];
+		/* mirroring */
+		bool mirror_rx;
+		bool mirror_tx;
+		int source_port;
+		int monitor_port;
+		u8 port_vlan_prio[AR8X16_MAX_PORTS];
+	);
 };
 
 u32

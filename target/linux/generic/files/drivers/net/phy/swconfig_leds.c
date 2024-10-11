@@ -85,7 +85,7 @@ swconfig_trig_update_port_mask(struct led_trigger *trigger)
 	sw_trig = (void *) trigger;
 
 	port_mask = 0;
-	read_lock(&trigger->leddev_list_lock);
+	spin_lock(&trigger->leddev_list_lock);
 	list_for_each(entry, &trigger->led_cdevs) {
 		struct led_classdev *led_cdev;
 		struct swconfig_trig_data *trig_data;
@@ -98,7 +98,7 @@ swconfig_trig_update_port_mask(struct led_trigger *trigger)
 			read_unlock(&trig_data->lock);
 		}
 	}
-	read_unlock(&trigger->leddev_list_lock);
+	spin_unlock(&trigger->leddev_list_lock);
 
 	sw_trig->port_mask = port_mask;
 
@@ -321,14 +321,6 @@ err_free:
 	return err;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
-static void
-swconfig_trig_activate_void(struct led_classdev *led_cdev)
-{
-	swconfig_trig_activate(led_cdev);
-}
-#endif
-
 static void
 swconfig_trig_deactivate(struct led_classdev *led_cdev)
 {
@@ -426,14 +418,14 @@ swconfig_trig_update_leds(struct switch_led_trigger *sw_trig)
 	struct led_trigger *trigger;
 
 	trigger = &sw_trig->trig;
-	read_lock(&trigger->leddev_list_lock);
+	spin_lock(&trigger->leddev_list_lock);
 	list_for_each(entry, &trigger->led_cdevs) {
 		struct led_classdev *led_cdev;
 
 		led_cdev = list_entry(entry, struct led_classdev, trig_list);
 		swconfig_trig_led_event(sw_trig, led_cdev);
 	}
-	read_unlock(&trigger->leddev_list_lock);
+	spin_unlock(&trigger->leddev_list_lock);
 }
 
 static void
@@ -523,11 +515,7 @@ swconfig_create_led_trigger(struct switch_dev *swdev)
 
 	sw_trig->swdev = swdev;
 	sw_trig->trig.name = swdev->devname;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
-	sw_trig->trig.activate = swconfig_trig_activate_void;
-#else
 	sw_trig->trig.activate = swconfig_trig_activate;
-#endif
 	sw_trig->trig.deactivate = swconfig_trig_deactivate;
 
 	INIT_DELAYED_WORK(&sw_trig->sw_led_work, swconfig_led_work_func);

@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "aximcom,mr-102n", "ralink,rt3052-soc";
@@ -16,7 +15,7 @@
 		led-upgrade = &led_status;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -39,10 +38,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -67,19 +80,22 @@
 		compatible = "gpio-leds";
 
 		usb {
-			label = "mr-102n:green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&otg_port1>;
 			linux,default-trigger = "usbport";
 		};
 
 		led_status: status {
-			label = "mr-102n:amber:status";
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_AMBER>;
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "mr-102n:green:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -104,13 +120,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -119,7 +136,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &otg {

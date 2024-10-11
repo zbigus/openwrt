@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "tplink,archer-mr200", "ralink,mt7620a-soc";
@@ -24,52 +23,57 @@
 		compatible = "gpio-leds";
 
 		lan {
-			label = "archer-mr200:white:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
 		};
 
 		wan {
-			label = "archer-mr200:white:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power: power {
-			label = "archer-mr200:white:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 		};
 
 		4g {
-			label = "archer-mr200:white:4g";
+			label = "white:4g";
 			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 		};
 
 		wps {
-			label = "archer-mr200:white:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;
 		};
 
 		signal1 {
-			label = "archer-mr200:white:signal1";
+			label = "white:signal1";
 			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
 		};
 
 		signal2 {
-			label = "archer-mr200:white:signal2";
+			label = "white:signal2";
 			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
 		};
 
 		signal3 {
-			label = "archer-mr200:white:signal3";
+			label = "white:signal3";
 			gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
 		};
 
 		signal4 {
-			label = "archer-mr200:white:signal4";
+			label = "white:signal4";
 			gpios = <&gpio2 4 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "archer-mr200:white:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy1tpt";
 		};
@@ -118,10 +122,10 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <10000000>;
+		spi-max-frequency = <30000000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -140,10 +144,20 @@
 				reg = <0x20000 0x7b0000>;
 			};
 
-			rom: partition@7d0000 {
+			partition@7d0000 {
 				label = "rom";
 				reg = <0x7d0000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_rom_f100: macaddr@f100 {
+						reg = <0xf100 0x6>;
+					};
+				};
 			};
 
 			partition@7e0000 {
@@ -152,10 +166,24 @@
 				read-only;
 			};
 
-			radio: partition@7f0000 {
+			partition@7f0000 {
 				label = "radio";
 				reg = <0x7f0000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_radio_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					eeprom_radio_8000: eeprom@8000 {
+						reg = <0x8000 0x200>;
+					};
+				};
 			};
 		};
 	};
@@ -163,13 +191,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "uartf", "rgmii1", "rgmii2", "wled", "nd_sd", "ephy", "spi refclk";
-		ralink,function = "gpio";
+		groups = "i2c", "uartf", "rgmii1", "rgmii2", "wled", "nd_sd", "ephy", "spi refclk";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&rom 0xf100>;
+	nvmem-cells = <&macaddr_rom_f100>;
+	nvmem-cell-names = "mac-address";
 };
 
 &ehci {
@@ -180,12 +209,9 @@
 	status = "okay";
 };
 
-&gsw {
-	mediatek,port4 = "ephy";
-};
-
 &wmac {
-	ralink,mtd-eeprom = <&radio 0x0>;
+	nvmem-cells = <&eeprom_radio_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &pcie {
@@ -195,6 +221,7 @@
 &pcie0 {
 	mt76@0,0 {
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&radio 0x8000>;
+		nvmem-cells = <&eeprom_radio_8000>;
+		nvmem-cell-names = "eeprom";
 	};
 };

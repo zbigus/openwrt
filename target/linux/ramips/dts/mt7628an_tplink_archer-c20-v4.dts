@@ -1,4 +1,4 @@
-/dts-v1/;
+#include <dt-bindings/leds/common.h>
 
 #include "mt7628an_tplink_8m.dtsi"
 
@@ -17,40 +17,45 @@
 		compatible = "gpio-leds";
 
 		lan {
-			label = "archer-c20-v4:green:lan";
-			gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 42 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power: power {
-			label = "archer-c20-v4:green:power";
-			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
 		};
 
 		wan {
-			label = "archer-c20-v4:green:wan";
-			gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 43 GPIO_ACTIVE_LOW>;
 		};
 
 		wan_orange {
-			label = "archer-c20-v4:orange:wan";
-			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_ORANGE>;
+			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan5g {
-			label = "archer-c20-v4:green:wlan5g";
-			gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
+			label = "green:wlan5g";
+			gpios = <&gpio 40 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy1tpt";
 		};
 
 		wlan2g {
-			label = "archer-c20-v4:green:wlan2g";
-			gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
+			label = "green:wlan2g";
+			gpios = <&gpio 39 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0tpt";
 		};
 
 		wps {
-			label = "archer-c20-v4:green:wps";
-			gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 41 GPIO_ACTIVE_LOW>;
 		};
 	};
 
@@ -59,20 +64,36 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 
 		rfkill {
 			label = "rfkill";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RFKILL>;
 		};
 	};
 };
 
+&ehci {
+	status = "disabled";
+};
+
+&ohci {
+	status = "disabled";
+};
+
 &wmac {
-	mtd-mac-address-increment = <(-2)>;
+	status = "okay";
+
+	nvmem-cells = <&eeprom_factory_20000>, <&macaddr_factory_f100 (-2)>;
+	nvmem-cell-names = "eeprom", "mac-address";
+};
+
+&ethernet {
+	nvmem-cells = <&macaddr_factory_f100 0>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -81,8 +102,8 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2s", "gpio", "refclk", "p0led_an", "p1led_an", "p2led_an", "p3led_an", "p4led_an", "wdt";
-		ralink,function = "gpio";
+		groups = "i2s", "gpio", "refclk", "p0led_an", "p1led_an", "p2led_an", "p3led_an", "p4led_an", "wdt";
+		function = "gpio";
 	};
 };
 
@@ -93,9 +114,8 @@
 &pcie0 {
 	mt76@0,0 {
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&factory 0x28000>;
 		ieee80211-freq-limit = <5000000 6000000>;
-		mtd-mac-address = <&factory 0xf100>;
-		mtd-mac-address-increment = <(-1)>;
+		nvmem-cells = <&eeprom_factory_28000>, <&macaddr_factory_f100 (-1)>;
+		nvmem-cell-names = "eeprom", "mac-address";
 	};
 };

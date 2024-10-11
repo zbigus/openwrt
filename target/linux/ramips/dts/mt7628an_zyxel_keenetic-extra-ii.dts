@@ -1,13 +1,12 @@
-/dts-v1/;
-
 #include "mt7628an.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "zyxel,keenetic-extra-ii", "mediatek,mt7628an-soc";
-	model = "ZyXEL Keenetic Extra II";
+	model = "Zyxel Keenetic Extra II";
 
 	aliases {
 		led-boot = &led_power;
@@ -25,19 +24,19 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 
 		wps {
 			label = "wps";
-			gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 46 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 
 		fn {
 			label = "fn";
-			gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 45 GPIO_ACTIVE_LOW>;
 			linux,code = <BTN_0>;
 		};
 	};
@@ -46,24 +45,25 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "keenetic-extra-ii:green:power";
-			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
-			default-state = "keep";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		};
 
 		internet {
-			label = "keenetic-extra-ii:green:internet";
-			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+			label = "green:internet";
+			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi {
-			label = "keenetic-extra-ii:green:wifi";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			label = "green:wifi";
+			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 
 		usb {
-			label = "keenetic-extra-ii:green:usb";
-			gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 1 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&ohci_port1>, <&ehci_port1>;
 			linux,default-trigger = "usbport";
 		};
@@ -76,7 +76,24 @@
 		usbpower {
 			gpio-export,name = "usbpower";
 			gpio-export,output = <1>;
-			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio 6 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	virtual_flash {
+		compatible = "mtd-concat";
+		devices = <&firmware1 &firmware2>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				compatible = "denx,uimage";
+				label = "firmware";
+				reg = <0x0 0x1d20000>;
+			};
 		};
 	};
 };
@@ -84,10 +101,10 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <10000000>;
+		spi-max-frequency = <32000000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -106,15 +123,32 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
-				label = "factory";
+			partition@40000 {
+				label = "rf-eeprom";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x400>;
+					};
+
+					eeprom_factory_8000: eeprom@8000 {
+						reg = <0x8000 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
-			partition@50000 {
-				compatible = "denx,uimage";
-				label = "firmware";
+			firmware1: partition@50000 {
+				label = "firmware_1";
 				reg = <0x50000 0xe90000>;
 			};
 
@@ -154,10 +188,9 @@
 				read-only;
 			};
 
-			partition@1050000 {
+			firmware2: partition@1050000 {
 				label = "firmware_2";
 				reg = <0x1050000 0xe90000>;
-				read-only;
 			};
 
 			partition@1ee0000 {
@@ -169,16 +202,9 @@
 	};
 };
 
-&ehci {
-	status = "okay";
-};
-
-&ohci {
-	status = "okay";
-};
-
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -187,6 +213,9 @@
 
 &wmac {
 	status = "okay";
+
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &pcie {
@@ -195,15 +224,17 @@
 
 &pcie0 {
 	mt76@0,0 {
+		compatible = "mediatek,mt76";
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&factory 0x8000>;
+		nvmem-cells = <&eeprom_factory_8000>;
+		nvmem-cell-names = "eeprom";
 		ieee80211-freq-limit = <5000000 6000000>;
 	};
 };
 
 &state_default {
 	gpio {
-		ralink,group = "gpio", "i2s", "refclk", "spi cs1", "uart1", "wled_an";
-		ralink,function = "gpio";
+		groups = "gpio", "i2s", "refclk", "spi cs1", "uart1", "wled_an";
+		function = "gpio";
 	};
 };

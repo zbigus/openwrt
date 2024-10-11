@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/dts-v1/;
+
+#include <dt-bindings/leds/common.h>
 
 #include "tp9343_tplink_tl-wr94x.dtsi"
 
@@ -18,12 +19,13 @@
 		compatible = "gpio-leds";
 
 		wan_blue {
-			label = "tp-link:blue:wan";
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 		};
 
 		led_diag_orange: diag_orange {
-			label = "tp-link:orange:diag";
+			label = "orange:diag";
 			gpios = <&gpio 15 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 		};
@@ -31,5 +33,6 @@
 };
 
 &eth1 {
-	mtd-mac-address = <&uboot 0x1fc00>;
+	nvmem-cells = <&macaddr_uboot_1fc00 0>;
+	nvmem-cell-names = "mac-address";
 };

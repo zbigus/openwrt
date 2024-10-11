@@ -1,5 +1,3 @@
-/dts-v1/;
-
 #include "mt7620a_hiwifi_hc5x61.dtsi"
 
 / {
@@ -17,29 +15,29 @@
 		compatible = "gpio-leds";
 
 		led_system: system {
-			label = "hc5861:blue:system";
+			label = "blue:system";
 			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan2g {
-			label = "hc5861:blue:wlan2g";
+			label = "blue:wlan2g";
 			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy1tpt";
 		};
 
 		internet {
-			label = "hc5861:blue:internet";
+			label = "blue:internet";
 			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan5g {
-			label = "hc5861:blue:wlan5g";
+			label = "blue:wlan5g";
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "phy0tpt";
 		};
 
 		turbo {
-			label = "hc5861:blue:turbo";
+			label = "blue:turbo";
 			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -53,12 +51,6 @@
 			gpio-export,output = <0>;
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 		};
-
-		sdpower {
-			gpio-export,name = "sdpower";
-			gpio-export,output = <0>;
-			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
-		};
 	};
 };
 
@@ -71,11 +63,10 @@
 };
 
 &ethernet {
-	status = "okay";
-	mtd-mac-address = <&factory 0x4>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&rgmii1_pins &mdio_pins>;
-	mediatek,portmap = "wllll";
+	pinctrl-0 = <&mdio_pins>, <&rgmii1_pins>;
+
+	mediatek,portmap = "llllw";
 
 	port@5 {
 		status = "okay";
@@ -93,6 +84,16 @@
 	};
 };
 
+&gsw {
+	mediatek,ephy-base = /bits/ 8 <12>;
+};
+
+&mmc_reg_3v3 {
+	/delete-property/ enable-active-high;
+
+	gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+};
+
 &pcie {
 	status = "okay";
 };
@@ -101,7 +102,18 @@
 	wifi@0,0 {
 		compatible = "pci14c3,7662";
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&factory 0x8000>;
+		nvmem-cells = <&eeprom_factory_8000>;
+		nvmem-cell-names = "eeprom";
 		ieee80211-freq-limit = <5000000 6000000>;
 	};
+};
+
+&sdhci {
+	max-frequency = <24000000>;
+};
+
+&wmac {
+	pinctrl-names = "default", "pa_gpio";
+	pinctrl-0 = <&pa_pins>;
+	pinctrl-1 = <&pa_gpio_pins>;
 };

@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "mt7620a.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "planex,mzk-750dhp", "ralink,mt7620a-soc";
@@ -20,17 +19,19 @@
 		compatible = "gpio-leds";
 
 		wps {
-			label = "mzk-750dhp:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio2 15 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power: power {
-			label = "mzk-750dhp:green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan5g {
-			label = "mzk-750dhp:green:wlan5g";
+			label = "green:wlan5g";
 			gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -63,7 +64,7 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <10000000>;
@@ -85,10 +86,28 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					eeprom_factory_8000: eeprom@8000 {
+						reg = <0x8000 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -102,24 +121,24 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "spi refclk", "rgmii1", "nd_sd";
-		ralink,function = "gpio";
+		groups = "i2c", "spi refclk", "rgmii1", "nd_sd";
+		function = "gpio";
 	};
 };
 
 &ethernet {
 	pinctrl-names = "default";
 	pinctrl-0 = <&ephy_pins>;
-	mtd-mac-address = <&factory 0x4>;
+
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
+
 	mediatek,portmap = "llllw";
 };
 
-&gsw {
-	mediatek,port4 = "ephy";
-};
-
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &pcie {
@@ -129,6 +148,7 @@
 &pcie0 {
 	mt76@0,0 {
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&factory 0x8000>;
+		nvmem-cells = <&eeprom_factory_8000>;
+		nvmem-cell-names = "eeprom";
 	};
 };

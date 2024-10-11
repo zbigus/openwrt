@@ -1,4 +1,4 @@
-/dts-v1/;
+#include <dt-bindings/leds/common.h>
 
 #include "mt7628an_tplink_8m.dtsi"
 
@@ -18,7 +18,7 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 	};
@@ -27,37 +27,62 @@
 		compatible = "gpio-leds";
 
 		lan {
-			label = "tl-wr840n-v4:green:lan";
-			gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 41 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power: power {
-			label = "tl-wr840n-v4:green:power";
-			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 36 GPIO_ACTIVE_LOW>;
 		};
 
 		wan {
-			label = "tl-wr840n-v4:green:wan";
-			gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 43 GPIO_ACTIVE_LOW>;
 		};
 
 		wlan {
-			label = "tl-wr840n-v4:green:wlan";
-			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
 		};
 
 		wps {
-			label = "tl-wr840n-v4:green:wps";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
 
+&ehci {
+	status = "disabled";
+};
+
+&ohci {
+	status = "disabled";
+};
+
 &state_default {
 	gpio {
-		ralink,group = "p0led_an", "p2led_an", "perst", "refclk", "wdt", "wled_an";
-		ralink,function = "gpio";
+		groups = "p0led_an", "p2led_an", "perst", "refclk", "wdt", "wled_an";
+		function = "gpio";
 	};
+};
+
+&wmac {
+	status = "okay";
+
+	nvmem-cells = <&eeprom_factory_20000>, <&macaddr_factory_f100 0>;
+	nvmem-cell-names = "eeprom", "mac-address";
+};
+
+&ethernet {
+	nvmem-cells = <&macaddr_factory_f100 0>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {

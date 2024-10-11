@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
-#include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/input/input.h>
-
 #include "qca956x.dtsi"
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+
 / {
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
+	aliases {
+		led-boot = &led_power;
+		led-failsafe = &led_power;
+		led-running = &led_power;
+		led-upgrade = &led_power;
 	};
 
 	keys {
@@ -26,17 +30,28 @@
 		};
 	};
 
-	// Pull up on boot - otherwise the reset button won't work
-	reset-button {
-		gpio-hog;
-		output-high;
-		gpios = <11 GPIO_ACTIVE_LOW>;
-		line-name = "reset-button";
-	};
-};
+	leds {
+		compatible = "gpio-leds";
 
-&uart {
-	status = "okay";
+		led_power: power {
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
+		};
+
+		wps {
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
+		};
+
+		wlan {
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy0tpt";
+		};
+	};
 };
 
 &pcie {
@@ -45,12 +60,11 @@
 
 &spi {
 	status = "okay";
-	num-cs = <1>;
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
-		spi-max-frequency = <30000000>;
+		spi-max-frequency = <50000000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -93,7 +107,7 @@
 				reg = <0x080000 0xf50000>;
 			};
 
-			art: partition@fd0000 {
+			partition@fd0000 {
 				label = "art";
 				reg = <0xfd0000 0x010000>;
 				read-only;
@@ -111,15 +125,14 @@
 &mdio0 {
 	status = "okay";
 
-	phy-mask = <0>;
-
 	phy0: ethernet-phy@0 {
 		reg = <0>;
 		qca,mib-poll-interval = <500>;
+		reset-gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 
 		qca,ar8327-initvals = <
 			0x04 0x00080080 /* PORT0 PAD MODE CTRL */
-			0x10 0x81000080 /* POWER_ON_STRIP */
+			0x10 0x81000080 /* POWER_ON_STRAP */
 			0x50 0xcc35cc35 /* LED_CTRL0 */
 			0x54 0xcb37cb37 /* LED_CTRL1 */
 			0x58 0x00000000 /* LED_CTRL2 */
@@ -140,5 +153,6 @@
 
 &wmac {
 	status = "okay";
+
 	qca,no-eeprom;
 };

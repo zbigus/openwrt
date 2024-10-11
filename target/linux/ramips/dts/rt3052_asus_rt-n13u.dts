@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt3050.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "asus,rt-n13u", "ralink,rt3052-soc";
@@ -16,7 +15,7 @@
 		led-upgrade = &led_power;
 	};
 
-	cfi@1f000000 {
+	flash@1f000000 {
 		compatible = "cfi-flash";
 		reg = <0x1f000000 0x800000>;
 		bank-width = <2>;
@@ -39,10 +38,24 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -57,12 +70,13 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "rt-n13u:blue:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_BLUE>;
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi {
-			label = "rt-n13u:blue:wifi";
+			label = "blue:wifi";
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -87,13 +101,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
-		ralink,function = "gpio";
+		groups = "spi", "i2c", "jtag", "rgmii", "mdio", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
@@ -101,7 +116,8 @@
 };
 
 &wmac {
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &otg {

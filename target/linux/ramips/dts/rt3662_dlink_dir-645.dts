@@ -1,9 +1,8 @@
-/dts-v1/;
-
 #include "rt3883.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "dlink,dir-645", "ralink,rt3662-soc", "ralink,rt3883-soc";
@@ -20,7 +19,7 @@
 		compatible = "realtek,rtl8367b";
 		gpio-sda = <&gpio0 1 GPIO_ACTIVE_HIGH>;
 		gpio-sck = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-		realtek,extif1 = <1 0 1 1 1 1 1 1 2>;
+		realtek,extif = <6 1 0 1 1 1 1 1 1 2>;
 	};
 
 	keys {
@@ -29,13 +28,13 @@
 
 		reset {
 			label = "reset";
-			gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 
 		wps {
 			label = "wps";
-			gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 	};
@@ -44,12 +43,13 @@
 		compatible = "gpio-leds";
 
 		inet {
-			label = "dir-645:green:inet";
+			label = "green:inet";
 			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
 		};
 
 		led_wps: wps {
-			label = "dir-645:green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
 		};
 	};
@@ -73,7 +73,7 @@
 &spi0 {
 	status = "okay";
 
-	m25p80@0 {
+	flash@0 {
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <25000000>;
@@ -95,10 +95,24 @@
 				read-only;
 			};
 
-			factory: partition@34000 {
+			partition@34000 {
 				label = "factory";
 				reg = <0x34000 0x4000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x200>;
+					};
+
+					macaddr_factory_4: macaddr@4 {
+						reg = <0x4 0x6>;
+					};
+				};
 			};
 
 			partition@38000 {
@@ -123,13 +137,14 @@
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "jtag", "uartf";
-		ralink,function = "gpio";
+		groups = "i2c", "jtag", "uartf";
+		function = "gpio";
 	};
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
 
 	port@0 {
 		mediatek,fixed-link = <1000 1 1 0>;
@@ -138,7 +153,8 @@
 
 &wmac {
 	ralink,5ghz = <0>;
-	ralink,mtd-eeprom = <&factory 0>;
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &ehci {

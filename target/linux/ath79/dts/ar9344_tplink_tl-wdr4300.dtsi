@@ -38,14 +38,14 @@
 
 &leds {
 	usb1 {
-		label = "tp-link:green:usb1";
+		label = "green:usb1";
 		gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		trigger-sources = <&hub_port1>;
 		linux,default-trigger = "usbport";
 	};
 
 	usb2 {
-		label = "tp-link:green:usb2";
+		label = "green:usb2";
 		gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
 		trigger-sources = <&hub_port2>;
 		linux,default-trigger = "usbport";
@@ -53,25 +53,21 @@
 };
 
 &usb {
+	status = "okay";
+};
+
+&hub_port {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "okay";
 
-	port@1 {
-		#address-cells = <1>;
-		#size-cells = <0>;
+	hub_port1: port@1 {
 		reg = <1>;
 		#trigger-source-cells = <0>;
+	};
 
-		hub_port1: port@1 {
-			reg = <1>;
-			#trigger-source-cells = <0>;
-		};
-
-		hub_port2: port@2 {
-			reg = <2>;
-			#trigger-source-cells = <0>;
-		};
+	hub_port2: port@2 {
+		reg = <2>;
+		#trigger-source-cells = <0>;
 	};
 };
 
@@ -79,19 +75,27 @@
 	status = "okay";
 };
 
-&ath9k {
-	mtd-mac-address = <&uboot 0x1fc00>;
+&wmac {
+	status = "okay";
+	nvmem-cells = <&macaddr_uboot_1fc00 (-1)>, <&cal_art_1000>;
+	nvmem-cell-names = "mac-address", "calibration";
 };
 
-&wmac {
-	mtd-mac-address = <&uboot 0x1fc00>;
-	mtd-mac-address-increment = <(-1)>;
+&pcie {
+	status = "okay";
+
+	ath9k: wifi@0,0 {
+		compatible = "pci168c,0033";
+		reg = <0x0000 0 0 0 0>;
+		#gpio-cells = <2>;
+		gpio-controller;
+		nvmem-cells = <&macaddr_uboot_1fc00 0>, <&cal_art_5000>;
+		nvmem-cell-names = "mac-address", "calibration";
+	};
 };
 
 &mdio0 {
 	status = "okay";
-
-	phy-mask = <0>;
 
 	phy0: ethernet-phy@0 {
 		reg = <0>;
@@ -99,7 +103,7 @@
 
 		qca,ar8327-initvals = <
 			0x04 0x07600000 /* PORT0 PAD MODE CTRL */
-			0x10 0x80000080 /* POWER_ON_STRIP */
+			0x10 0x80000080 /* POWER_ON_STRAP */
 			0x50 0xc737c737 /* LED_CTRL0 */
 			0x54 0x00000000 /* LED_CTRL1 */
 			0x58 0x00000000 /* LED_CTRL2 */
@@ -115,7 +119,8 @@
 	/* default for ar934x, except for 1000M */
 	pll-data = <0x06000000 0x00000101 0x00001616>;
 
-	mtd-mac-address = <&uboot 0x1fc00>;
+	nvmem-cells = <&macaddr_uboot_1fc00 0>;
+	nvmem-cell-names = "mac-address";
 
 	phy-mode = "rgmii";
 	phy-handle = <&phy0>;

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
+#include "qca955x.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-
-#include "qca9557.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
-	chosen {
-		bootargs = "console=ttyS0,115200n8";
-	};
-
 	aliases {
 		led-boot = &led_system;
 		led-failsafe = &led_system;
@@ -21,30 +18,33 @@
 		compatible = "gpio-leds";
 
 		led_system: system {
-			label = "tp-link:white:system";
+			label = "white:system";
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
 
 		wlan {
-			label = "tp-link:white:wlan";
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
 		};
 
 		lan {
-			label = "tp-link:white:lan";
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio 23 GPIO_ACTIVE_LOW>;
 		};
 
 		usb {
-			label = "tp-link:white:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&hub_port1>, <&hub_port0>;
 			linux,default-trigger = "usbport";
 		};
 
 		qss {
-			label = "tp-link:white:qss";
+			label = "white:qss";
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -76,7 +76,7 @@
 		regulator-name = "usb_vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio 21 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 21 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 
@@ -85,7 +85,7 @@
 		regulator-name = "usb_vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio 22 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio 22 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
 };
@@ -140,25 +140,14 @@
 	status = "okay";
 };
 
-&uart {
-	status = "okay";
-};
-
 &usb_phy0 {
 	status = "okay";
 };
 
 &usb0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
 	dr_mode = "host";
 	vbus-supply = <&reg_usb0_vbus>;
 	status = "okay";
-
-	hub_port0: port@1 {
-		reg = <1>;
-		#trigger-source-cells = <0>;
-	};
 };
 
 &usb_phy1 {
@@ -166,14 +155,7 @@
 };
 
 &usb1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
 	dr_mode = "host";
 	vbus-supply = <&reg_usb1_vbus>;
 	status = "okay";
-
-	hub_port1: port@1 {
-		reg = <1>;
-		#trigger-source-cells = <0>;
-	};
 };

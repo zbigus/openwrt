@@ -1,29 +1,25 @@
-/dts-v1/;
-#include <dt-bindings/input/input.h>
-#include <dt-bindings/gpio/gpio.h>
-
 #include "mt7628an.dtsi"
+
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	compatible = "wavlink,wl-wn575a3", "mediatek,mt7628an-soc";
 	model = "Wavlink WL-WN575A3";
-
-	chosen {
-		bootargs = "console=ttyS0,57600";
-	};
 
 	keys {
 		compatible = "gpio-keys";
 
 		reset {
 			label = "reset";
-			gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 43 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
 		};
 
 		wps {
 			label = "wps";
-			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 	};
@@ -32,31 +28,32 @@
 		compatible = "gpio-leds";
 
 		wifi-high {
-			label = "wl-wn575a3:green:wifi-high";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			label = "green:wifi-high";
+			gpios = <&gpio 37 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi-med {
-			label = "wl-wn575a3:green:wifi-med";
-			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+			label = "green:wifi-med";
+			gpios = <&gpio 11 GPIO_ACTIVE_LOW>;
 		};
 
 		wifi-low {
-			label = "wl-wn575a3:green:wifi-low";
-			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+			label = "green:wifi-low";
+			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
 		};
 
 		wps {
-			label = "wl-wn575a3:green:wps";
-			gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
 
 &state_default {
 	gpio {
-		ralink,group = "i2c", "wled_an", "gpio", "refclk", "wdt", "p0led_an";
-		ralink,function = "gpio";
+		groups = "i2c", "wled_an", "gpio", "refclk", "wdt", "p0led_an";
+		function = "gpio";
 	};
 };
 
@@ -67,7 +64,8 @@
 &pcie0 {
 	mt76@0,0 {
 		reg = <0x0000 0 0 0 0>;
-		mediatek,mtd-eeprom = <&factory 0x8000>;
+		nvmem-cells = <&eeprom_factory_8000>;
+		nvmem-cell-names = "eeprom";
 		ieee80211-freq-limit = <5000000 6000000>;
 	};
 };
@@ -97,10 +95,28 @@
 				read-only;
 			};
 
-			factory: partition@40000 {
+			partition@40000 {
 				label = "factory";
 				reg = <0x40000 0x10000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x400>;
+					};
+
+					eeprom_factory_8000: eeprom@8000 {
+						reg = <0x8000 0x200>;
+					};
+
+					macaddr_factory_28: macaddr@28 {
+						reg = <0x28 0x6>;
+					};
+				};
 			};
 
 			partition@50000 {
@@ -114,10 +130,14 @@
 
 &wmac {
 	status = "okay";
+
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 };
 
 &ethernet {
-	mtd-mac-address = <&factory 0x28>;
+	nvmem-cells = <&macaddr_factory_28>;
+	nvmem-cell-names = "mac-address";
 };
 
 &esw {
